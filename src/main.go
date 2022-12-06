@@ -14,6 +14,5 @@ func main() {
 	http.HandleFunc("/", handlerFunc)
 	addr := "localhost:3000"
 	log.Println("Listening on", addr)
-	log.Println("ugh 123 ")
 	log.Fatal(http.ListenAndServe(addr, nil))
 }
