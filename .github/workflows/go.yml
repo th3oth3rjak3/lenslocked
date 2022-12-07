@@ -22,10 +22,10 @@ jobs:
         go-version: 1.19
 
     - name: Get Dependencies
-      run: cd ./src && go get ...
+      run: cd ./src && pwd && go get ...
 
     - name: Build
-      run: pwd && cd /home/runner/go/lenslocked/lenslocked/src && go build -v .
+      run: go build -v .
 
     - name: Test
       run: go test -cover ./...
