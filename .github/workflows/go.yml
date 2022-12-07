@@ -25,7 +25,7 @@ jobs:
       run: cd ./src && go get ...
 
     - name: Build
-      run: pwd && cd /home/runner/go/lenslocked/src && go build -v .
+      run: pwd && cd /home/runner/go/lenslocked/lenslocked/src && go build -v .
 
     - name: Test
       run: go test -cover ./...
