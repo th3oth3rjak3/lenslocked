@@ -21,8 +21,11 @@ jobs:
       with:
         go-version: 1.19
 
+    - name: Get Dependencies
+      run: cd ./src && pwd && go get ...
+
     - name: Build
-      run: go build -v ./src/main.go
+      run: cd ./src && pwd && go build -v .
 
     - name: Test
-      run: cd ./src && go test -v -cover ./...
+      run: cd ./src && pwd && go test -cover ./...
