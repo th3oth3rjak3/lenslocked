@@ -1,0 +1,11 @@
+<h1>Hello, {{.Name}}!</h1>
+<p>
+	You appear to be
+	<span style="font-weight: bold; color: teal">{{.Int}}</span> years old!
+</p>
+<p>Your kids names:</p>
+<ul>
+	{{range .Kids}}
+	<li>{{.}}</li>
+	{{end}}
+</ul>
