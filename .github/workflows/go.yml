@@ -25,7 +25,7 @@ jobs:
       run: cd ./src && go get ...
 
     - name: Build
-      run: go build -v ./src/main.go
+      run: go build -v main.go
 
     - name: Test
-      run: cd ./src && go test -v -cover ./...
+      run: go test -cover ./...
