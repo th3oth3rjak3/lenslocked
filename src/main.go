@@ -14,27 +14,35 @@ import (
 var (
 	homeView    *views.View
 	contactView *views.View
+	signupView  *views.View
 )
 
 func Contact(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "text/html")
-	err := contactView.Template.Execute(w, nil)
-	if err != nil {
-		panic(err)
-	}
+	must(contactView.Render(w, nil))
 }
 
 func Home(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "text/html")
-	err := homeView.Template.Execute(w, nil)
+	must(homeView.Render(w, nil))
+}
+
+func Signup(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "text/html")
+	must(signupView.Render(w, nil))
+}
+
+func initializeViews() {
+	homeView = views.NewView("bootstrap", "views/home.html")
+	contactView = views.NewView("bootstrap", "views/contact.html")
+	signupView = views.NewView("bootstrap", "views/signup.html")
+}
+
+// This function is used to define things that must work or else panic.
+func must(err error) {
 	if err != nil {
 		panic(err)
 	}
-}
-
-func initializeViews(){
-	homeView = views.NewView("views/home.html")
-	contactView = views.NewView("views/contact.html")
 }
 
 func main() {
@@ -42,6 +50,7 @@ func main() {
 	r := mux.NewRouter()
 	r.HandleFunc("/", Home)
 	r.HandleFunc("/contact", Contact)
+	r.HandleFunc("/signup", Signup)
 	r.NotFoundHandler = http.HandlerFunc(notfound.NotFound)
 	addr := "localhost:3000"
 	log.Println("Listening on:", addr)

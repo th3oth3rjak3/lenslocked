@@ -3,20 +3,46 @@
 // Finally, it also defines the View type and its structure.
 package views
 
-import "html/template"
+import (
+	"html/template"
+	"path/filepath"
+	"net/http"
+)
 
-func NewView(files ...string) *View {
-	files = append(files, "views/layouts/footer.html")
+var (
+	LayoutDir string = "views/layouts/"
+	TemplateExtension string = ".html"
+)
+
+// The NewView function creates a new View when provided a name for the layout definition and any new files for the view.
+func NewView(layout string, files ...string) *View {
+	files = append(files, layoutFiles()...)
 	t, err := template.ParseFiles(files...)
 	if err != nil {
 		panic(err)
 	}
 	return &View{
 		Template: t,
+		Layout: layout,
 	}
 }
 
-type View struct {
-	Template *template.Template
+// Render is used to render the view with the predefined layout.
+func (v *View) Render(w http.ResponseWriter, data interface{}) error {
+	return v.Template.ExecuteTemplate(w, v.Layout, nil)
 }
 
+// An object to handle webpage Views.
+type View struct {
+	Template *template.Template
+	Layout   string
+}
+
+// Uses glob to get all of the template files in the directory.
+func layoutFiles() []string {
+	files, err := filepath.Glob(LayoutDir + "*" + TemplateExtension)
+	if err != nil {
+		panic(err)
+	}
+	return files
+}
