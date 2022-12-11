@@ -5,10 +5,9 @@ import (
 	"net/http"
 
 	"lenslocked/controllers"
-	notfound "lenslocked/routing/notfound"
 	"lenslocked/views"
 
-	"github.com/gorilla/mux"
+	"github.com/go-chi/chi/v5"
 )
 
 // TODO: Take these out of the global namespace.
@@ -43,11 +42,11 @@ func main() {
 	usersC := controllers.NewUsers()
 
 	// Create a router
-	r := mux.NewRouter()
-	r.HandleFunc("/", Home)
-	r.HandleFunc("/contact", Contact)
-	r.HandleFunc("/signup", usersC.New)
-	r.NotFoundHandler = http.HandlerFunc(notfound.NotFound)
+	r := chi.NewRouter()
+	r.Get("/", Home)
+	r.Get("/contact", Contact)
+	r.Get("/signup", usersC.New)
+	r.Post("/signup", usersC.Create)
 
 	// Start server
 	addr := "localhost:3000"
