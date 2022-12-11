@@ -14,12 +14,12 @@ import (
 var (
 	homeView    *views.View
 	contactView *views.View
+	signupView  *views.View
 )
 
 func Contact(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "text/html")
 	must(contactView.Render(w, nil))
-
 }
 
 func Home(w http.ResponseWriter, r *http.Request) {
@@ -27,13 +27,19 @@ func Home(w http.ResponseWriter, r *http.Request) {
 	must(homeView.Render(w, nil))
 }
 
-func initializeViews(){
+func Signup(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "text/html")
+	must(signupView.Render(w, nil))
+}
+
+func initializeViews() {
 	homeView = views.NewView("bootstrap", "views/home.html")
 	contactView = views.NewView("bootstrap", "views/contact.html")
+	signupView = views.NewView("bootstrap", "views/signup.html")
 }
 
 // This function is used to define things that must work or else panic.
-func must(err error){
+func must(err error) {
 	if err != nil {
 		panic(err)
 	}
@@ -44,6 +50,7 @@ func main() {
 	r := mux.NewRouter()
 	r.HandleFunc("/", Home)
 	r.HandleFunc("/contact", Contact)
+	r.HandleFunc("/signup", Signup)
 	r.NotFoundHandler = http.HandlerFunc(notfound.NotFound)
 	addr := "localhost:3000"
 	log.Println("Listening on:", addr)

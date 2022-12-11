@@ -14,6 +14,7 @@ var (
 	TemplateExtension string = ".html"
 )
 
+// The NewView function creates a new View when provided a name for the layout definition and any new files for the view.
 func NewView(layout string, files ...string) *View {
 	files = append(files, layoutFiles()...)
 	t, err := template.ParseFiles(files...)
