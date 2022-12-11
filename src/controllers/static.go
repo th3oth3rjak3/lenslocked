@@ -14,7 +14,7 @@ type Static struct {
 // Only used during initial startup.
 func NewStatic() *Static {
 	return &Static{
-		Home:    views.NewView("bootstrap", "views/static/home.html"),
-		Contact: views.NewView("bootstrap", "views/static/contact.html"),
+		Home:    views.NewView("bootstrap", "static/home"),
+		Contact: views.NewView("bootstrap", "static/contact"),
 	}
 }

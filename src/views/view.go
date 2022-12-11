@@ -9,13 +9,9 @@ import (
 	"path/filepath"
 )
 
-var (
-	LayoutDir         string = "views/layouts/"
-	TemplateExtension string = ".html"
-)
-
 // The NewView function creates a new View when provided a name for the layout definition and any new files for the view.
 func NewView(layout string, files ...string) *View {
+	processViewNames(files)
 	files = append(files, layoutFiles()...)
 	t, err := template.ParseFiles(files...)
 	if err != nil {
@@ -24,6 +20,16 @@ func NewView(layout string, files ...string) *View {
 	return &View{
 		Template: t,
 		Layout:   layout,
+	}
+}
+
+// The processViewNames function prepends common directory information
+// to the front of the filename and appends the extensions on the end.
+func processViewNames(files []string) {
+	baseDir := "views/"
+	extension := ".html"
+	for i, file := range files {
+		files[i] = baseDir + file + extension
 	}
 }
 
@@ -48,7 +54,9 @@ type View struct {
 
 // Uses glob to get all of the template files in the directory.
 func layoutFiles() []string {
-	files, err := filepath.Glob(LayoutDir + "*" + TemplateExtension)
+	layoutDir := "views/layouts/"
+	templateExtension := ".html"
+	files, err := filepath.Glob(layoutDir + "*" + templateExtension)
 	if err != nil {
 		panic(err)
 	}
