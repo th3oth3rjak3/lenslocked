@@ -42,6 +42,8 @@ type SignupForm struct {
 func (s *SignupForm) Bind(r *http.Request) error {
 	s.Email = r.PostFormValue("email")
 	s.Password = r.PostFormValue("password")
+	// TODO: The empty string checking may need to be moved to a validation function.
+	// TODO: It may be outisde of the single responsibility principle for the Bind method.
 	if s.Email == "" || s.Password == "" {
 		return errors.New("email or password were not provided")
 	}
