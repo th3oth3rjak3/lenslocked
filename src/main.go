@@ -18,23 +18,25 @@ var (
 
 func Contact(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "text/html")
-	err := contactView.Template.ExecuteTemplate(w, contactView.Layout, nil)
-	if err != nil {
-		panic(err)
-	}
+	must(contactView.Render(w, nil))
+
 }
 
 func Home(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "text/html")
-	err := homeView.Template.ExecuteTemplate(w, homeView.Layout, nil)
-	if err != nil {
-		panic(err)
-	}
+	must(homeView.Render(w, nil))
 }
 
 func initializeViews(){
 	homeView = views.NewView("bootstrap", "views/home.html")
 	contactView = views.NewView("bootstrap", "views/contact.html")
+}
+
+// This function is used to define things that must work or else panic.
+func must(err error){
+	if err != nil {
+		panic(err)
+	}
 }
 
 func main() {
