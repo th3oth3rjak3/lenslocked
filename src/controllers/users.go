@@ -1,8 +1,10 @@
 package controllers
 
 import (
-	"net/http"
+	"errors"
 	"fmt"
+	"net/http"
+
 	"lenslocked/views"
 )
 
@@ -30,10 +32,31 @@ func (u *Users) New(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-// Create is used to process the signup form when submitted by a user.
-// This creates a new user account.
+// The contents of the signup form which may be null
+type SignupForm struct {
+	Email    string
+	Password string
+}
+
+// The bind method checks to ensure that both email and password were provided in the form.
+func (s *SignupForm) Bind(r *http.Request) error {
+	s.Email = r.PostFormValue("email")
+	s.Password = r.PostFormValue("password")
+	if s.Email == "" || s.Password == "" {
+		return errors.New("email or password were not provided")
+	}
+	return nil
+}
+
+// Used to process the signup request for a new user.
 //
 // POST /signup
 func (u *Users) Create(w http.ResponseWriter, r *http.Request) {
-	fmt.Fprintln(w, "This is a temp response.")
+	newUser := &SignupForm{}
+	if err := newUser.Bind(r); err != nil {
+		w.WriteHeader(http.StatusBadRequest)
+		fmt.Fprint(w, err)
+		return
+	}
+	fmt.Fprint(w, *newUser)
 }
