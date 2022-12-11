@@ -1,0 +1,32 @@
+{{define "body"}}
+<div class="row justify-content-xl-center">
+  <div class="col-xl-4">
+    <div class="card">
+      <div class="card-header text-bg-dark">Sign Up Now!</div>
+      <div class="card-body">{{template "signup"}}</div>
+    </div>
+  </div>
+</div>
+
+{{end}} {{define "signup"}}
+<form action="/signup" method="POST">
+	<div class="mb-3">
+		<label for="email" class="form-label">Email address</label>
+		<input
+			type="email"
+			class="form-control"
+			name="email"
+			id="email"
+			aria-describedby="emailHelp"
+		/>
+		<div id="emailHelp" class="form-text">
+			We'll never share your email with anyone else.
+		</div>
+	</div>
+	<div class="mb-3">
+		<label for="password" class="form-label">Password</label>
+		<input type="password" class="form-control" name="password" id="password" />
+	</div>
+	<button type="submit" class="btn btn-primary">Submit</button>
+</form>
+{{end}}
