@@ -14,8 +14,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
-
-      setup-postgresql-ubuntu:
+      
       - name: Setup PostgreSQL on Ubuntu
         runs-on: ubuntu-latest
         steps:
