@@ -9,9 +9,12 @@ import (
 )
 
 func mockUserService(causeError bool) (*UserService, error) {
-	err := godotenv.Load("../.env")
-	if err != nil {
-		panic(err)
+	if os.Getenv("GITHUB_ACTION") != "true" {
+
+		err := godotenv.Load("../.env")
+		if err != nil {
+			panic(err)
+		}
 	}
 	psqlInfo := os.Getenv("DB_CONNECTION_STRING_TEST")
 	if causeError {
