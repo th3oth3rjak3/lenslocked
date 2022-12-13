@@ -131,19 +131,16 @@ func TestUserById(t *testing.T) {
 	}
 }
 
-func TestInvalidUser(t *testing.T) {
+func TestUserByInvalidId(t *testing.T) {
 	us, err := mockUserService(false)
 	if err != nil {
 		t.Fatal(err)
 	}
 	defer us.Close()
 	var invalidId uint = 100
-	newUsr, err := us.ByID(invalidId)
+	_, err = us.ByID(invalidId)
 	if err == nil {
 		t.Errorf("Have: %s, Want: %s", err, ErrNotFound)
-	}
-	if newUsr != nil {
-		t.Errorf("Have a user: %+v, Want: %+v", newUsr, nil)
 	}
 }
 
@@ -177,11 +174,151 @@ func TestQueryWithClosedUserService(t *testing.T) {
 		t.Fatal(err)
 	}
 	var id uint = 1
-	newUsr, err := us.ByID(id)
+	_, err = us.ByID(id)
 	if err == nil {
 		t.Errorf("Have: %s, Want: %s", err, "Some Other Error")
 	}
-	if newUsr != nil {
-		t.Errorf("Have a user: %+v, Want: %+v", newUsr, nil)
+}
+
+func TestUpdateUser(t *testing.T) {
+	us, err := mockUserService(false)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer us.Close()
+	name := "Jake"
+	email := "jake.d.hathaway@icloud.com"
+
+	usr := User{
+		Name:  name,
+		Email: email,
+	}
+	if err := us.Create(&usr); err != nil {
+		t.Fatal(err)
+	}
+	newEmail := "jake.d.hathaway.alt@icloud.com"
+	newName := "Jake Hathaway"
+	usr.Name = newName
+	usr.Email = newEmail
+	if err = us.Update(&usr); err != nil {
+		t.Fatalf("Update user failed: %s", err)
+	}
+	newUser, err := us.ByID(usr.ID)
+	if err != nil {
+		t.Fatalf("Get user by ID failed: %s", err)
+	}
+	if newUser.ID != usr.ID {
+		t.Errorf("User ID doesn't match. Have: %d, Want: %d", newUser.ID, usr.ID)
+	}
+	if newUser.Name != newName {
+		t.Errorf("User Name wasn't updated. Have: %s, Want: %s", newUser.Name, newName)
+	}
+	if newUser.Email != newEmail {
+		t.Errorf("User Email wasn't updated. Have: %s, Want: %s", newUser.Email, newEmail)
+	}
+	if time.Since(newUser.UpdatedAt) > time.Since(newUser.CreatedAt) {
+		t.Errorf("Expected update time > created time. Updated: %+v, Created: %+v", newUser.UpdatedAt, newUser.CreatedAt)
+	}
+}
+
+func TestUserByEmail(t *testing.T) {
+	us, err := mockUserService(false)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer us.Close()
+
+	name := "Jake"
+	email := "jake.d.hathaway@icloud.com"
+
+	usr := User{
+		Name:  name,
+		Email: email,
+	}
+	if err := us.Create(&usr); err != nil {
+		t.Fatal(err)
+	}
+	newUsr, err := us.ByEmail(email)
+	if err != nil {
+		t.Fatalf("Error getting user by email. %s", err)
+	}
+	if newUsr.Email != email {
+		t.Errorf("Email invalid. Have: %s, Want: %s", newUsr.Email, email)
+	}
+}
+
+func TestUserByInvalidEmail(t *testing.T) {
+	us, err := mockUserService(false)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer us.Close()
+
+	email := "jake.d.hathaway@icloud.com"
+
+	_, err = us.ByEmail(email)
+	if err == nil {
+		t.Fatalf("Expected an error. Got: %s", err)
+	}
+	if err != ErrNotFound {
+		t.Fatalf("Expected ErrNotFound. Got: %s", err)
+	}
+}
+
+func TestUserByEmailWithClosedConnection(t *testing.T) {
+	us, err := mockUserService(false)
+	if err != nil {
+		t.Fatal(err)
+	}
+	err = us.Close()
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	email := "jake.d.hathaway@icloud.com"
+
+	_, err = us.ByEmail(email)
+	if err == nil {
+		t.Fatalf("Expected an error. Got: %s", err)
+	}
+	if err == ErrNotFound {
+		t.Fatalf("Expected Some Other Error. Got: %s", err)
+	}
+}
+
+func TestDeleteUserById(t *testing.T) {
+	us, err := mockUserService(false)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer us.Close()
+	name := "Jake"
+	email := "jake.d.hathaway@icloud.com"
+
+	usr := User{
+		Name:  name,
+		Email: email,
+	}
+	if err := us.Create(&usr); err != nil {
+		t.Fatal(err)
+	}
+	if err := us.Delete(usr.ID); err != nil {
+		t.Fatalf("Expected no errors, Got: %s", err)
+	}
+}
+
+func TestDeleteUserByInvalidId(t *testing.T) {
+	us, err := mockUserService(false)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer us.Close()
+
+	err = us.Delete(0)
+	if err == nil {
+		t.Fatalf("Expected an error, Got: %s", err)
+	}
+	if err != ErrInvalidId {
+		t.Errorf("Expected ErrInvalidId, Got: %s", err)
 	}
 }
