@@ -15,20 +15,22 @@ jobs:
     steps:
       - uses: actions/checkout@v3
 
-      - name: Start PostgreSQL
+      setup-postgresql-ubuntu:
+      - name: Setup PostgreSQL on Ubuntu
+        runs-on: ubuntu-latest
+        steps:
+        - name: Start PostgreSQL on Ubuntu
         run: |
           sudo systemctl start postgresql.service
           pg_isready
-
-      - name: Create additional user
+        - name: Create scheduler user
         run: |
-          sudo -u postgres psql --command="CREATE USER test PASSWORD 'password'" --command="\du"
-          sudo -u postgres psql --command="ALTER USER test WITH SUPERUSER"
-
-      - name: Create additional database
+          sudo -u postgres psql --command="CREATE USER scheduler PASSWORD 'somestrong'" --command="\du"
+        - name: Create timetable database
         run: |
-          sudo -u postgres createdb TestDatabase --owner=test
-          PGPASSWORD=password
+          sudo -u postgres createdb --owner=scheduler timetable
+          PGPASSWORD=somestrong psql --username=scheduler --host=localhost --list timetable
+
 
       - name: Set up Go
         uses: actions/setup-go@v3
@@ -43,7 +45,9 @@ jobs:
 
       - name: Test
         run: cd ./src && pwd && go test -cover ./...
+        with:
+          postgresql user
         env:
-          DATABASE_CONNECTION_STRING_TEST: "host=localhost user=test password=password dbname=TestDatabase"
-          DATABASE_CONNECTION_STRING_ERROR: "host=localhost port=5432 user=test password=passwordfail dbname=TestDatabase"
+          DATABASE_CONNECTION_STRING_TEST: "host=localhost user=scheduler password=somestrong dbname=timetable"
+          DATABASE_CONNECTION_STRING_ERROR: "host=localhost port=5432 user=scheduler password=somestrong1 dbname=timetable"
           GITHUB_ACTION_STATUS_INDICATOR: "true"
