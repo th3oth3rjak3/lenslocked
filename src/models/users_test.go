@@ -18,6 +18,7 @@ func mockUserService(causeError bool) (*UserService, error) {
 		}
 	}
 	psqlInfo := os.Getenv("DB_CONNECTION_STRING_TEST")
+	fmt.Printf("\nPSQLINFO: %s\n", psqlInfo)
 	if causeError {
 		psqlInfo = os.Getenv("DB_CONNECTION_STRING_ERROR")
 	}
