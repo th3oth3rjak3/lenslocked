@@ -10,7 +10,7 @@ import (
 )
 
 func mockUserService(causeError bool) (*UserService, error) {
-	if os.Getenv("GITHUB_ACTION") != "true" {
+	if os.Getenv("GITHUB_ACTION_STATUS_INDICATOR") != "true" {
 		fmt.Printf("THIS IS MY GITHUB_ACTION: '%s'", os.Getenv("GITHUB_ACTION"))
 		err := godotenv.Load("../.env")
 		if err != nil {

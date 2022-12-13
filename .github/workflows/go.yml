@@ -45,4 +45,4 @@ jobs:
         env:
           DATABASE_CONNECTION_STRING_TEST: "host=localhost port=5432 user=testuser password=password dbname=TestDatabase sslmode=disable"
           DATABASE_CONNECTION_STRING_ERROR: "host=localhost port=5432 user=someuserthatdoesntexist password=password dbname=TestDatabase sslmode=disable"
-          GITHUB_ACTION: "true"
+          GITHUB_ACTION_STATUS_INDICATOR: "true"
