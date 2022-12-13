@@ -2,6 +2,7 @@ package models
 
 import (
 	"errors"
+	"os"
 
 	"github.com/jinzhu/gorm"
 	_ "github.com/jinzhu/gorm/dialects/postgres"
@@ -42,7 +43,12 @@ type UserService struct {
 //
 // This doesn't check for errors, just returns any errors during processing.
 func (us *UserService) Create(user *User) error {
-	hashedBytes, err := bcrypt.GenerateFromPassword([]byte(user.Password), bcrypt.DefaultCost)
+	pepper := os.Getenv("PEPPER")
+	if pepper == "" {
+		return errors.New("models: error during user creation")
+	}
+	pwBytes := []byte(user.Password + pepper)
+	hashedBytes, err := bcrypt.GenerateFromPassword(pwBytes, bcrypt.DefaultCost)
 	if err != nil {
 		return err
 	}
