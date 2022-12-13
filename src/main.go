@@ -39,8 +39,10 @@ func main() {
 	r := chi.NewRouter()
 	r.Get("/", staticC.Home.ServeHTTP)
 	r.Get("/contact", staticC.Contact.ServeHTTP)
-	r.Get("/signup", usersC.New)
+	r.Get("/signup", usersC.NewView.ServeHTTP)
 	r.Post("/signup", usersC.Create)
+	r.Get("/login", usersC.LoginView.ServeHTTP)
+	r.Post("/login", usersC.Login)
 
 	// Start server
 	addr := "localhost:3000"
