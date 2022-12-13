@@ -16,6 +16,13 @@ var ErrNotFound = errors.New("models: resource not found")
 // ErrInvalidId is returned when an invalid ID is provided to a method like Delete.
 var ErrInvalidId = errors.New("models: id provided was invalid")
 
+// ErrInvalidPassword is returned when the user enters an incorrect password
+var ErrInvalidPassword = errors.New("models: incorrect password provided")
+
+// ErrEnvironmentUnset is returned when the pepper cannot be found in the environment variables.
+var ErrEnvironmentUnset = errors.New("models: missing environment variables")
+
+// The User object is a GORM model that that represents the user's information.
 type User struct {
 	gorm.Model
 	Name         string
@@ -24,6 +31,9 @@ type User struct {
 	PasswordHash string `gorm:"not null"`
 }
 
+// Creates an instance of the UserService with the provided connection string.
+// After calling new user service, it will be required to close the database
+// connection by later calling the UserService.Close() method.
 func NewUserService(connectionInfo string) (*UserService, error) {
 	db, err := gorm.Open("postgres", connectionInfo)
 	if err != nil {
@@ -35,6 +45,8 @@ func NewUserService(connectionInfo string) (*UserService, error) {
 	}, nil
 }
 
+// The UserService object holds a reference to the database that is
+// opened after calling the NewUserService method.
 type UserService struct {
 	db *gorm.DB
 }
@@ -45,7 +57,7 @@ type UserService struct {
 func (us *UserService) Create(user *User) error {
 	pepper := os.Getenv("PEPPER")
 	if pepper == "" {
-		return errors.New("models: error during user creation")
+		return ErrEnvironmentUnset
 	}
 	pwBytes := []byte(user.Password + pepper)
 	hashedBytes, err := bcrypt.GenerateFromPassword(pwBytes, bcrypt.DefaultCost)
@@ -55,6 +67,34 @@ func (us *UserService) Create(user *User) error {
 	user.PasswordHash = string(hashedBytes)
 	user.Password = "" // Clear the user's actual password
 	return us.db.Create(user).Error
+}
+
+// Authenticates a user with a given email and password.
+// If the email address is invalid, this will return nil, ErrNotFound.
+// If the password provided is invalid, this will return nil, ErrInvalidPassword
+// If the email and password are both valid, this will return user, nil.
+// Otherwise, any other errors will return nil, error.
+func (us *UserService) Authenticate(email, password string) (*User, error) {
+	foundUser, err := us.ByEmail(email)
+	if err != nil {
+		return nil, err
+	}
+
+	pepper := os.Getenv("PEPPER")
+	if pepper == "" {
+		return nil, ErrEnvironmentUnset
+	}
+	pwBytes := []byte(password + pepper)
+	err = bcrypt.CompareHashAndPassword([]byte(foundUser.PasswordHash), pwBytes)
+	if err != nil {
+		switch err {
+		case bcrypt.ErrMismatchedHashAndPassword:
+			return nil, ErrInvalidPassword
+		default:
+			return nil, err
+		}
+	}
+	return foundUser, nil
 }
 
 // Returns the first value from a gorm.DB instance which matches the user object.
@@ -101,7 +141,7 @@ func (us *UserService) ByID(id uint) (*User, error) {
 // an HTTP 500 error.
 func (us *UserService) ByEmail(email string) (*User, error) {
 	var user User
-	db := us.db.Where("email = ?", email)
+	db := us.db.Where("LOWER(email) = LOWER(?)", email)
 	err := first(db, &user)
 	return &user, err
 }

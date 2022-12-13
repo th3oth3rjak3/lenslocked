@@ -84,7 +84,17 @@ func (u *Users) Login(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, err.Error(), http.StatusUnauthorized)
 		return
 	}
-	fmt.Fprintln(w, *formData)
+	usr, err := u.userService.Authenticate(formData.Email, formData.Password)
+	switch err {
+	case nil:
+		fmt.Fprintln(w, usr)
+	case models.ErrNotFound:
+		fmt.Fprintln(w, "Invalid email address")
+	case models.ErrInvalidPassword:
+		fmt.Fprintln(w, "Invalid password")
+	default:
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+	}
 }
 
 // Represents the form data that is required when logging in.
