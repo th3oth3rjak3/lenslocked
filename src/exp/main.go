@@ -4,9 +4,6 @@ import (
 	"fmt"
 
 	"lenslocked/models"
-
-	"github.com/jinzhu/gorm"
-	_ "github.com/jinzhu/gorm/dialects/postgres"
 )
 
 const (
@@ -18,12 +15,6 @@ const (
 	dbname   = "lenslocked_dev"
 )
 
-type User struct {
-	gorm.Model
-	Name  string
-	Email string `gorm:"not null;unique_index"`
-}
-
 func main() {
 	psqlInfo := fmt.Sprintf("host=%s port=%d user=%s dbname=%s sslmode=disable", host, port, user, dbname)
 	us, err := models.NewUserService(psqlInfo)
@@ -31,10 +22,26 @@ func main() {
 		panic(err)
 	}
 	defer us.Close()
-	// us.DestructiveReset()
-	usr, err := us.ByID(2)
+	us.DestructiveReset()
+	usr := createUser(us)
+	fmt.Printf("%+v", getUserById(us, usr.ID))
+}
+
+func getUserById(us *models.UserService, id uint) *models.User {
+	usr, err := us.ByID(id)
 	if err != nil {
 		panic(err)
 	}
-	fmt.Printf("%+v", usr)
+	return usr
+}
+
+func createUser(us *models.UserService) *models.User {
+	usr := &models.User{
+		Name: "Jake",
+		Email: "jake.d.hathaway@icloud.com",
+	}
+	if err := us.Create(usr); err != nil {
+		panic(err)
+	}
+	return usr
 }

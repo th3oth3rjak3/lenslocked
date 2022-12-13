@@ -54,6 +54,13 @@ func (us *UserService) ByID(id uint) (*User, error) {
 	}
 }
 
+// Creates a provided user and backfills data like the ID, CreatedAt, and UpdatedAt fields.
+//
+// This doesn't check for errors, just returns any errors during processing.
+func (us *UserService) Create(user *User) error {
+	return us.db.Create(user).Error
+}
+
 // Closes the UserService database connection. It can be deferred if desired.
 func (us *UserService) Close() error {
 	return us.db.Close()
