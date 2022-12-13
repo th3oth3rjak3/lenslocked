@@ -23,11 +23,12 @@ jobs:
       - name: Create additional user
         run: |
           sudo -u postgres psql --command="CREATE USER test PASSWORD password" --command="\du"
-          sudo -u postgres psql --command="GRANT ALL PRIVILEGES ON DATABASE TestDatabase TO test;"
 
       - name: Create additional database
         run: |
           sudo -u postgres createdb TestDatabase --owner=test PGPASSWORD=password
+          sudo -u postgres psql --command="GRANT ALL PRIVILEGES ON DATABASE TestDatabase TO test;"
+
       - name: Set up Go
         uses: actions/setup-go@v3
         with:
