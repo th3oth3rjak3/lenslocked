@@ -5,20 +5,23 @@ import (
 	"fmt"
 	"net/http"
 
+	"lenslocked/models"
 	"lenslocked/views"
 )
 
 // The Users controller object.
 type Users struct {
-	NewView *views.View
+	NewView     *views.View
+	userService *models.UserService
 }
 
 // Instantiates a new Users controller.
 // This will panic if templates are not parsed correctly.
 // Only used during initial startup.
-func NewUsers() *Users {
+func NewUsers(us *models.UserService) *Users {
 	return &Users{
-		NewView: views.NewView("bootstrap", "users/new"),
+		NewView:     views.NewView("bootstrap", "users/new"),
+		userService: us,
 	}
 }
 
@@ -34,6 +37,7 @@ func (u *Users) New(w http.ResponseWriter, r *http.Request) {
 
 // The contents of the signup form which may be null
 type SignupForm struct {
+	Name     string
 	Email    string
 	Password string
 }
@@ -42,23 +46,34 @@ type SignupForm struct {
 func (s *SignupForm) Bind(r *http.Request) error {
 	s.Email = r.PostFormValue("email")
 	s.Password = r.PostFormValue("password")
-	// TODO: The empty string checking may need to be moved to a validation function.
-	// TODO: It may be outisde of the single responsibility principle for the Bind method.
-	if s.Email == "" || s.Password == "" {
-		return errors.New("email or password were not provided")
+	s.Name = r.PostFormValue("name")
+	if !s.IsValid() {
+		return errors.New("email, name, or password were not provided")
 	}
 	return nil
+}
+
+func (s *SignupForm) IsValid() bool {
+	// TODO: Lookup email in the database to see if it exists?
+	return s.Name != "" && s.Password != "" && s.Email != ""
 }
 
 // Used to process the signup request for a new user.
 //
 // POST /signup
 func (u *Users) Create(w http.ResponseWriter, r *http.Request) {
-	newUser := &SignupForm{}
-	if err := newUser.Bind(r); err != nil {
-		w.WriteHeader(http.StatusBadRequest)
-		fmt.Fprint(w, err)
+	formData := &SignupForm{}
+	if err := formData.Bind(r); err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
-	fmt.Fprint(w, *newUser)
+	user := models.User{
+		Name:  formData.Name,
+		Email: formData.Email,
+	}
+	if err := u.userService.Create(&user); err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	fmt.Fprint(w, *formData)
 }

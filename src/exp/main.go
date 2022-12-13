@@ -1,51 +1,47 @@
 package main
 
 import (
-	"database/sql"
 	"fmt"
 
-	_ "github.com/lib/pq"
+	"lenslocked/models"
 )
 
 const (
-	host     = "localhost"
-	port     = 5432
-	user     = "Jake"
-	password = "" // Add this after user in the connection string if you have one.
+	host = "localhost"
+	port = 5432
+	user = "Jake"
+	// Add password after user in the connection string if you have one.
+	password = ""
 	dbname   = "lenslocked_dev"
 )
 
-func main(){
+func main() {
 	psqlInfo := fmt.Sprintf("host=%s port=%d user=%s dbname=%s sslmode=disable", host, port, user, dbname)
-	db, err := sql.Open("postgres", psqlInfo)
+	us, err := models.NewUserService(psqlInfo)
 	if err != nil {
 		panic(err)
 	}
+	defer us.Close()
+	us.DestructiveReset()
+	// usr := createUser(us)
+	// fmt.Printf("%+v", getUserById(us, usr.ID))
+}
 
-	defer db.Close()
-	rows, err := db.Query(`
-		SELECT users.id AS user_id, users.name, users.email,
-		orders.id AS order_id, orders.description, orders.amount
-		FROM users
-		INNER JOIN orders ON users.id = orders.user_id;
-	`)
+func getUserById(us *models.UserService, id uint) *models.User {
+	usr, err := us.ByID(id)
 	if err != nil {
 		panic(err)
 	}
-	defer rows.Close()
-	var (
-		user_id int
-		name string
-		email string
-		order_id int
-		description string
-		amount int
-	)
-	for rows.Next() {
-		err := rows.Scan(&user_id, &name, &email, &order_id, &description, &amount)
-		if err != nil {
-			panic(err)
-		}
-		fmt.Println(user_id, name, email, order_id, description, amount)
+	return usr
+}
+
+func createUser(us *models.UserService) *models.User {
+	usr := &models.User{
+		Name:  "Fake User",
+		Email: "fake.user@email.com",
 	}
+	if err := us.Create(usr); err != nil {
+		panic(err)
+	}
+	return usr
 }

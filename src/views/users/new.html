@@ -1,31 +1,44 @@
 {{define "body"}}
 <div class="row justify-content-xl-center">
-  <div class="col-xl-4">
-    <div class="card">
-      <div class="card-header text-bg-dark">Sign Up Now!</div>
-      <div class="card-body">{{template "signup"}}</div>
-    </div>
-  </div>
+	<div class="col-xl-4">
+		<div class="card">
+			<div class="card-header text-bg-dark">Sign Up Now!</div>
+			<div class="card-body">{{template "signup"}}</div>
+		</div>
+	</div>
 </div>
 
 {{end}} {{define "signup"}}
 <form action="/signup" method="POST">
-	<div class="mb-3">
-		<label for="email" class="form-label">Email address</label>
+	<div class="form-floating mb-3">
+		<input
+			type="text"
+			class="form-control"
+			name="name"
+			id="name"
+			placeholder="Full Name"
+		/>
+		<label for="name">Full Name</label>
+	</div>
+	<div class="form-floating mb-3">
 		<input
 			type="email"
 			class="form-control"
 			name="email"
 			id="email"
-			aria-describedby="emailHelp"
+			placeholder="Email Address"
 		/>
-		<div id="emailHelp" class="form-text">
-			We'll never share your email with anyone else.
-		</div>
+		<label for="email">Email address</label>
 	</div>
-	<div class="mb-3">
-		<label for="password" class="form-label">Password</label>
-		<input type="password" class="form-control" name="password" id="password" />
+	<div class="form-floating mb-3">
+		<input
+			type="password"
+			class="form-control"
+			name="password"
+			id="password"
+			placeholder="Password"
+		/>
+		<label for="password">Password</label>
 	</div>
 	<button type="submit" class="btn btn-primary">Submit</button>
 </form>
