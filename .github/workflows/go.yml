@@ -42,8 +42,9 @@ jobs:
         run: cd ./src && pwd && go build -v .
 
       - name: Test
-        run: cd ./src && pwd && go test -cover ./...
         env:
           DB_CONNECTION_STRING_TEST: "host=localhost user=test password=password dbname=TestDatabase"
           DB_CONNECTION_STRING_ERROR: "host=localhost port=5432 user=test password=passwordfail dbname=TestDatabase"
           GITHUB_ACTION_STATUS_INDICATOR: "true"
+          PEPPER: "SOME TEST PEPPER"
+        run: printenv && cd ./src && pwd && go test -cover ./...

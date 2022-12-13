@@ -12,6 +12,7 @@ import (
 // The Users controller object.
 type Users struct {
 	NewView     *views.View
+	LoginView   *views.View
 	userService *models.UserService
 }
 
@@ -21,17 +22,8 @@ type Users struct {
 func NewUsers(us *models.UserService) *Users {
 	return &Users{
 		NewView:     views.NewView("bootstrap", "users/new"),
+		LoginView:   views.NewView("bootstrap", "users/login"),
 		userService: us,
-	}
-}
-
-// New is used to render the form where a user can create a new user account.
-//
-// GET /signup
-func (u *Users) New(w http.ResponseWriter, r *http.Request) {
-	w.Header().Set("Content-Type", "text/html")
-	if err := u.NewView.Render(w, nil); err != nil {
-		panic(err)
 	}
 }
 
@@ -53,6 +45,9 @@ func (s *SignupForm) Bind(r *http.Request) error {
 	return nil
 }
 
+// IsValid checks to see if form data for a Signup Form is empty. If any value
+// is not provided, it will return false. If all values are provided, it will
+// return true.
 func (s *SignupForm) IsValid() bool {
 	// TODO: Lookup email in the database to see if it exists?
 	return s.Name != "" && s.Password != "" && s.Email != ""
@@ -68,12 +63,61 @@ func (u *Users) Create(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	user := models.User{
-		Name:  formData.Name,
-		Email: formData.Email,
+		Name:     formData.Name,
+		Email:    formData.Email,
+		Password: formData.Password,
 	}
 	if err := u.userService.Create(&user); err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
-	fmt.Fprint(w, *formData)
+	fmt.Fprint(w, user)
+}
+
+// Login is used to verify the provided email address and password and log
+// the user in if they have an account and the credentials are correct.
+//
+// POST /login
+func (u *Users) Login(w http.ResponseWriter, r *http.Request) {
+	formData := &LoginForm{}
+	if err := formData.Bind(r); err != nil {
+		http.Error(w, err.Error(), http.StatusUnauthorized)
+		return
+	}
+	usr, err := u.userService.Authenticate(formData.Email, formData.Password)
+	switch err {
+	case nil:
+		fmt.Fprintln(w, usr)
+	case models.ErrNotFound:
+		fmt.Fprintln(w, "Invalid email address")
+	case models.ErrInvalidPassword:
+		fmt.Fprintln(w, "Invalid password")
+	default:
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+	}
+}
+
+// Represents the form data that is required when logging in.
+type LoginForm struct {
+	Email    string
+	Password string
+}
+
+// The bind method checks to ensure that both email and password were provided in the form.
+// It also assigns the form values to the LoginForm and returns an error if any of the
+// fields are empty.
+func (l *LoginForm) Bind(r *http.Request) error {
+	l.Email = r.PostFormValue("email")
+	l.Password = r.PostFormValue("password")
+	if !l.IsValid() {
+		return errors.New("email or password were not provided or are invalid")
+	}
+	return nil
+}
+
+// IsValid checks to see if email and password are both provided and not empty
+// for the Login Form.
+func (l *LoginForm) IsValid() bool {
+	// TODO: Lookup email in the database to see if it exists?
+	return l.Email != "" && l.Password != ""
 }

@@ -1,7 +1,6 @@
 package models
 
 import (
-	"fmt"
 	"os"
 	"testing"
 	"time"
@@ -11,14 +10,12 @@ import (
 
 func mockUserService(causeError bool) (*UserService, error) {
 	if os.Getenv("GITHUB_ACTION_STATUS_INDICATOR") != "true" {
-		fmt.Printf("THIS IS MY GITHUB_ACTION: '%s'", os.Getenv("GITHUB_ACTION"))
 		err := godotenv.Load("../.env")
 		if err != nil {
 			panic(err)
 		}
 	}
 	psqlInfo := os.Getenv("DB_CONNECTION_STRING_TEST")
-	fmt.Printf("\nPSQLINFO: %s\n", psqlInfo)
 	if causeError {
 		psqlInfo = os.Getenv("DB_CONNECTION_STRING_ERROR")
 	}
@@ -80,6 +77,29 @@ func TestCreateUser(t *testing.T) {
 		actual := usr.UpdatedAt.Format(fString)
 		t.Errorf("Expected user to be updated recently. Have: %v, Want: %v - %v", actual, minStr, maxStr)
 	}
+}
+
+func TestUserNoEnv(t *testing.T) {
+	us, err := mockUserService(false)
+	if err != nil {
+		t.Fatal(err)
+	}
+	name := "fake user"
+	email := "fake.user@email.com"
+	password := "test123"
+
+	usr := &User{
+		Name:     name,
+		Email:    email,
+		Password: password,
+	}
+	env := os.Getenv("PEPPER")
+	os.Unsetenv("PEPPER")
+	err = us.Create(usr)
+	if err != ErrEnvironmentUnset {
+		t.Errorf("Expected ErrEnvironmentUnset: %s", err)
+	}
+	os.Setenv("PEPPER", env)
 }
 
 func TestUserById(t *testing.T) {
@@ -339,5 +359,44 @@ func TestDestructiveReset(t *testing.T) {
 	}
 	if err := us.DestructiveReset(); err == nil {
 		t.Errorf("Expected a desctructive reset error with closed database: %s", err)
+	}
+}
+
+func TestAuthenticateValidUser(t *testing.T) {
+	us, err := mockUserService(false)
+	if err != nil {
+		t.Fatal(err)
+	}
+	email := "fake@email.com"
+	capsEmail := "FAKE@EMAIL.COM"
+	badEmail := "fake.user@email.com"
+	password := "test123"
+	badPassword := "nottest123"
+	usr := &User{Name: "fake user", Email: email, Password: password}
+	err = us.Create(usr)
+	if err != nil {
+		t.Errorf("Expected a successful user creation. %s", err)
+	}
+	_, err = us.Authenticate(email, password)
+	if err != nil {
+		t.Errorf("Email and password should have been correct: %s", err)
+	}
+	_, err = us.Authenticate(capsEmail, password)
+	if err != nil {
+		t.Errorf("Should be case insensitive: %s", err)
+	}
+	_, err = us.Authenticate(email, badPassword)
+	if err != ErrInvalidPassword {
+		t.Errorf("Expected ErrInvalidPassword: %s", err)
+	}
+	_, err = us.Authenticate(badEmail, password)
+	if err != ErrNotFound {
+		t.Errorf("Expected ErrNotFound: %s", err)
+	}
+
+	os.Unsetenv("PEPPER")
+	_, err = us.Authenticate(email, password)
+	if err != ErrEnvironmentUnset {
+		t.Errorf("Expected ErrEnvironmentUnset: %s", err)
 	}
 }
