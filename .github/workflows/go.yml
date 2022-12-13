@@ -9,11 +9,6 @@ on:
   pull_request:
     branches: ["main"]
 
-env:
-  DATABASE_CONNECTION_STRING_TEST: "host=localhost port=5432 user=testuser password=password dbname=TestDatabase sslmode=disable"
-  DATABASE_CONNECTION_STRING_ERROR: "host=localhost port=5432 user=someuserthatdoesntexist password=password dbname=TestDatabase sslmode=disable"
-  GITHUB_ACTION: "true"
-
 jobs:
   build:
     runs-on: ubuntu-latest
@@ -47,3 +42,7 @@ jobs:
 
       - name: Test
         run: cd ./src && pwd && go test -cover ./...
+        env:
+          DATABASE_CONNECTION_STRING_TEST: "host=localhost port=5432 user=testuser password=password dbname=TestDatabase sslmode=disable"
+          DATABASE_CONNECTION_STRING_ERROR: "host=localhost port=5432 user=someuserthatdoesntexist password=password dbname=TestDatabase sslmode=disable"
+          GITHUB_ACTION: "true"
