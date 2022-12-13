@@ -3,6 +3,8 @@ package main
 import (
 	"fmt"
 
+	"lenslocked/models"
+
 	"github.com/jinzhu/gorm"
 	_ "github.com/jinzhu/gorm/dialects/postgres"
 )
@@ -24,19 +26,15 @@ type User struct {
 
 func main() {
 	psqlInfo := fmt.Sprintf("host=%s port=%d user=%s dbname=%s sslmode=disable", host, port, user, dbname)
-	db, err := gorm.Open("postgres", psqlInfo)
+	us, err := models.NewUserService(psqlInfo)
 	if err != nil {
 		panic(err)
 	}
-
-	defer db.Close()
-	// LogMode typically not for use in production, but good for learning and dev.
-	db.LogMode(true)
-	db.AutoMigrate(&User{})
-	var u User
-	db.Where("id < ?", 10).
-		Where("id < ?", 5).
-		First(&u)
-	fmt.Printf("%+v\n", u)
-	// say something nice...
+	defer us.Close()
+	// us.DestructiveReset()
+	usr, err := us.ByID(2)
+	if err != nil {
+		panic(err)
+	}
+	fmt.Printf("%+v", usr)
 }
