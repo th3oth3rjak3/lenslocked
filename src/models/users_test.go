@@ -93,12 +93,13 @@ func TestUserNoEnv(t *testing.T) {
 		Email:    email,
 		Password: password,
 	}
-
+	env := os.Getenv("PEPPER")
 	os.Unsetenv("PEPPER")
 	err = us.Create(usr)
 	if err != ErrEnvironmentUnset {
 		t.Errorf("Expected ErrEnvironmentUnset: %s", err)
 	}
+	os.Setenv("PEPPER", env)
 }
 
 func TestUserById(t *testing.T) {
