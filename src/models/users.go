@@ -112,7 +112,14 @@ func (us *UserService) Close() error {
 }
 
 // Destructive Reset drops and automigrates the Users table.
-func (us *UserService) DestructiveReset() {
-	us.db.DropTableIfExists(&User{})
-	us.db.AutoMigrate(&User{})
+func (us *UserService) DestructiveReset() error {
+	if err := us.db.DropTableIfExists(&User{}).Error; err != nil {
+		return err
+	}
+	return us.AutoMigrate()
+}
+
+// Runs an automigration for the user table in the database.
+func (us *UserService) AutoMigrate() error {
+	return us.db.AutoMigrate(&User{}).Error
 }

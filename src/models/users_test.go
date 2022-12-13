@@ -1,24 +1,22 @@
 package models
 
 import (
-	"fmt"
+	"os"
 	"testing"
 	"time"
+
+	"github.com/joho/godotenv"
 )
 
 func mockUserService(causeError bool) (*UserService, error) {
-	var (
-		host = "localhost"
-		port = 5432
-		user = "Jake"
-		// Add password after user in the connection string if you have one.
-		// password = ""
-		dbname = "lenslocked_test"
-	)
-	if causeError {
-		user = "SomeUserThatDoesntExist"
+	err := godotenv.Load("../.env")
+	if err != nil {
+		panic(err)
 	}
-	psqlInfo := fmt.Sprintf("host=%s port=%d user=%s dbname=%s sslmode=disable", host, port, user, dbname)
+	psqlInfo := os.Getenv("DB_CONNECTION_STRING_TEST")
+	if causeError {
+		psqlInfo = os.Getenv("DB_CONNECTION_STRING_ERROR")
+	}
 	us, err := NewUserService(psqlInfo)
 	if err != nil {
 		return nil, err
@@ -37,8 +35,8 @@ func TestCreateUser(t *testing.T) {
 	}
 	defer us.Close()
 
-	name := "Jake"
-	email := "jake.d.hathaway@icloud.com"
+	name := "Fake User"
+	email := "fake.user@email.com"
 
 	usr := User{
 		Name:  name,
@@ -85,8 +83,8 @@ func TestUserById(t *testing.T) {
 		t.Fatal(err)
 	}
 	defer us.Close()
-	name := "Jake"
-	email := "jake.d.hathaway@icloud.com"
+	name := "Fake User"
+	email := "fake.user@email.com"
 
 	usr := User{
 		Name:  name,
@@ -186,8 +184,8 @@ func TestUpdateUser(t *testing.T) {
 		t.Fatal(err)
 	}
 	defer us.Close()
-	name := "Jake"
-	email := "jake.d.hathaway@icloud.com"
+	name := "Fake User"
+	email := "fake.user@email.com"
 
 	usr := User{
 		Name:  name,
@@ -196,8 +194,8 @@ func TestUpdateUser(t *testing.T) {
 	if err := us.Create(&usr); err != nil {
 		t.Fatal(err)
 	}
-	newEmail := "jake.d.hathaway.alt@icloud.com"
-	newName := "Jake Hathaway"
+	newEmail := "fake.user.new@email.com"
+	newName := "Fake User New"
 	usr.Name = newName
 	usr.Email = newEmail
 	if err = us.Update(&usr); err != nil {
@@ -228,8 +226,8 @@ func TestUserByEmail(t *testing.T) {
 	}
 	defer us.Close()
 
-	name := "Jake"
-	email := "jake.d.hathaway@icloud.com"
+	name := "Fake User"
+	email := "fake.user@email.com"
 
 	usr := User{
 		Name:  name,
@@ -254,7 +252,7 @@ func TestUserByInvalidEmail(t *testing.T) {
 	}
 	defer us.Close()
 
-	email := "jake.d.hathaway@icloud.com"
+	email := "fake.user@email.com"
 
 	_, err = us.ByEmail(email)
 	if err == nil {
@@ -275,7 +273,7 @@ func TestUserByEmailWithClosedConnection(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	email := "jake.d.hathaway@icloud.com"
+	email := "fake.user@email.com"
 
 	_, err = us.ByEmail(email)
 	if err == nil {
@@ -292,8 +290,8 @@ func TestDeleteUserById(t *testing.T) {
 		t.Fatal(err)
 	}
 	defer us.Close()
-	name := "Jake"
-	email := "jake.d.hathaway@icloud.com"
+	name := "Fake User"
+	email := "fake.user@email.com"
 
 	usr := User{
 		Name:  name,
@@ -320,5 +318,21 @@ func TestDeleteUserByInvalidId(t *testing.T) {
 	}
 	if err != ErrInvalidId {
 		t.Errorf("Expected ErrInvalidId, Got: %s", err)
+	}
+}
+
+func TestDestructiveReset(t *testing.T) {
+	us, err := mockUserService(false)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err = us.Close(); err != nil {
+		t.Fatalf("Error closing connection: %s", err)
+	}
+	if err := us.AutoMigrate(); err == nil {
+		t.Errorf("Expected an automigrate error with closed database: %s", err)
+	}
+	if err := us.DestructiveReset(); err == nil {
+		t.Errorf("Expected a desctructive reset error with closed database: %s", err)
 	}
 }

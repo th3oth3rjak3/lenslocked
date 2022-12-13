@@ -23,8 +23,8 @@ func main() {
 	}
 	defer us.Close()
 	us.DestructiveReset()
-	usr := createUser(us)
-	fmt.Printf("%+v", getUserById(us, usr.ID))
+	// usr := createUser(us)
+	// fmt.Printf("%+v", getUserById(us, usr.ID))
 }
 
 func getUserById(us *models.UserService, id uint) *models.User {
@@ -37,8 +37,8 @@ func getUserById(us *models.UserService, id uint) *models.User {
 
 func createUser(us *models.UserService) *models.User {
 	usr := &models.User{
-		Name: "Jake",
-		Email: "jake.d.hathaway@icloud.com",
+		Name:  "Fake User",
+		Email: "fake.user@email.com",
 	}
 	if err := us.Create(usr); err != nil {
 		panic(err)
