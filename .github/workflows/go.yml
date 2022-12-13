@@ -26,7 +26,8 @@ jobs:
 
       - name: Create additional database
         run: |
-          sudo -u postgres createdb TestDatabase --owner=test PGPASSWORD=password
+          sudo -u postgres createdb TestDatabase --owner=test
+          PGPASSWORD=password
           sudo -u postgres psql --command="GRANT ALL PRIVILEGES ON DATABASE TestDatabase TO test;"
 
       - name: Set up Go
