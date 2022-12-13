@@ -68,12 +68,13 @@ func (u *Users) Create(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	user := models.User{
-		Name:  formData.Name,
-		Email: formData.Email,
+		Name:     formData.Name,
+		Email:    formData.Email,
+		Password: formData.Password,
 	}
 	if err := u.userService.Create(&user); err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
-	fmt.Fprint(w, *formData)
+	fmt.Fprint(w, user)
 }

@@ -5,6 +5,8 @@ import (
 
 	"github.com/jinzhu/gorm"
 	_ "github.com/jinzhu/gorm/dialects/postgres"
+
+	"golang.org/x/crypto/bcrypt"
 )
 
 // ErrNotFound is returned when a resource cannot be found in the database.
@@ -15,8 +17,10 @@ var ErrInvalidId = errors.New("models: id provided was invalid")
 
 type User struct {
 	gorm.Model
-	Name  string
-	Email string `gorm:"not null;unique_index"`
+	Name         string
+	Email        string `gorm:"not null;unique_index"`
+	Password     string `gorm:"-"`
+	PasswordHash string `gorm:"not null"`
 }
 
 func NewUserService(connectionInfo string) (*UserService, error) {
@@ -38,6 +42,12 @@ type UserService struct {
 //
 // This doesn't check for errors, just returns any errors during processing.
 func (us *UserService) Create(user *User) error {
+	hashedBytes, err := bcrypt.GenerateFromPassword([]byte(user.Password), bcrypt.DefaultCost)
+	if err != nil {
+		return err
+	}
+	user.PasswordHash = string(hashedBytes)
+	user.Password = "" // Clear the user's actual password
 	return us.db.Create(user).Error
 }
 

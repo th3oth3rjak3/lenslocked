@@ -28,6 +28,9 @@ func main() {
 	// Run migrations
 	us.AutoMigrate()
 
+	// Destructive Reset if AutoMigrate won't work.
+	// us.DestructiveReset()
+
 	// Create controllers and views
 	staticC := controllers.NewStatic()
 	usersC := controllers.NewUsers(us)
