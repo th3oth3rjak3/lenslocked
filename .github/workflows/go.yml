@@ -22,12 +22,11 @@ jobs:
 
       - name: Create additional user
         run: |
-          sudo -u postgres psql --command="CREATE USER testuser PASSWORD 'password'" --command="\du"
+          sudo -u postgres psql --command="CREATE USER testuser" --command="\du"
 
       - name: Create additional database
         run: |
-          sudo -u postgres createdb TestDatabase --owner=testuser 
-          PGPASSWORD=password
+          sudo -u postgres createdb TestDatabase --owner=testuser
 
       - name: Set up Go
         uses: actions/setup-go@v3
@@ -43,6 +42,6 @@ jobs:
       - name: Test
         run: cd ./src && pwd && go test -cover ./...
         env:
-          DATABASE_CONNECTION_STRING_TEST: "host=localhost port=5432 user=testuser password=password dbname=TestDatabase sslmode=disable"
-          DATABASE_CONNECTION_STRING_ERROR: "host=localhost port=5432 user=someuserthatdoesntexist password=password dbname=TestDatabase sslmode=disable"
+          DATABASE_CONNECTION_STRING_TEST: "host=localhost port=5432 user=testuser dbname=TestDatabase sslmode=disable"
+          DATABASE_CONNECTION_STRING_ERROR: "host=localhost port=5432 user=someuserthatdoesntexist dbname=TestDatabase sslmode=disable"
           GITHUB_ACTION_STATUS_INDICATOR: "true"
