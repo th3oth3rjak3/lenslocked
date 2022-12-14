@@ -46,4 +46,5 @@ jobs:
           DB_CONNECTION_STRING_TEST: "host=localhost user=test password=password dbname=TestDatabase"
           DB_CONNECTION_STRING_ERROR: "host=localhost port=5432 user=test password=passwordfail dbname=TestDatabase"
           GITHUB_ACTION_STATUS_INDICATOR: "true"
+          HASH_KEY: "some super secret hash key"
         run: printenv && cd ./src && pwd && go test -cover ./...
