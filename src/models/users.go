@@ -2,7 +2,6 @@ package models
 
 import (
 	"errors"
-	"os"
 
 	"github.com/jinzhu/gorm"
 	_ "github.com/jinzhu/gorm/dialects/postgres"
@@ -18,9 +17,6 @@ var ErrInvalidId = errors.New("models: id provided was invalid")
 
 // ErrInvalidPassword is returned when the user enters an incorrect password
 var ErrInvalidPassword = errors.New("models: incorrect password provided")
-
-// ErrEnvironmentUnset is returned when the pepper cannot be found in the environment variables.
-var ErrEnvironmentUnset = errors.New("models: missing environment variables")
 
 // The User object is a GORM model that that represents the user's information.
 type User struct {
@@ -55,11 +51,11 @@ type UserService struct {
 //
 // This doesn't check for errors, just returns any errors during processing.
 func (us *UserService) Create(user *User) error {
-	pepper := os.Getenv("PEPPER")
-	if pepper == "" {
-		return ErrEnvironmentUnset
-	}
-	pwBytes := []byte(user.Password + pepper)
+	// pepper := os.Getenv("PEPPER")
+	// if pepper == "" {
+	// 	return ErrEnvironmentUnset
+	// }
+	pwBytes := []byte(user.Password) // + pepper)
 	hashedBytes, err := bcrypt.GenerateFromPassword(pwBytes, bcrypt.DefaultCost)
 	if err != nil {
 		return err
@@ -80,11 +76,11 @@ func (us *UserService) Authenticate(email, password string) (*User, error) {
 		return nil, err
 	}
 
-	pepper := os.Getenv("PEPPER")
-	if pepper == "" {
-		return nil, ErrEnvironmentUnset
-	}
-	pwBytes := []byte(password + pepper)
+	// pepper := os.Getenv("PEPPER")
+	// if pepper == "" {
+	// 	return nil, ErrEnvironmentUnset
+	// }
+	pwBytes := []byte(password) //+ pepper)
 	err = bcrypt.CompareHashAndPassword([]byte(foundUser.PasswordHash), pwBytes)
 	if err != nil {
 		switch err {

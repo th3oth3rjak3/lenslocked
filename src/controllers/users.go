@@ -95,6 +95,10 @@ func (u *Users) Login(w http.ResponseWriter, r *http.Request) {
 	default:
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 	}
+	if err != nil {
+		return
+	}
+	// cookie := http.Cookie
 }
 
 // Represents the form data that is required when logging in.

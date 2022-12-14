@@ -79,29 +79,6 @@ func TestCreateUser(t *testing.T) {
 	}
 }
 
-func TestUserNoEnv(t *testing.T) {
-	us, err := mockUserService(false)
-	if err != nil {
-		t.Fatal(err)
-	}
-	name := "fake user"
-	email := "fake.user@email.com"
-	password := "test123"
-
-	usr := &User{
-		Name:     name,
-		Email:    email,
-		Password: password,
-	}
-	env := os.Getenv("PEPPER")
-	os.Unsetenv("PEPPER")
-	err = us.Create(usr)
-	if err != ErrEnvironmentUnset {
-		t.Errorf("Expected ErrEnvironmentUnset: %s", err)
-	}
-	os.Setenv("PEPPER", env)
-}
-
 func TestUserById(t *testing.T) {
 	us, err := mockUserService(false)
 	if err != nil {
@@ -392,11 +369,5 @@ func TestAuthenticateValidUser(t *testing.T) {
 	_, err = us.Authenticate(badEmail, password)
 	if err != ErrNotFound {
 		t.Errorf("Expected ErrNotFound: %s", err)
-	}
-
-	os.Unsetenv("PEPPER")
-	_, err = us.Authenticate(email, password)
-	if err != ErrEnvironmentUnset {
-		t.Errorf("Expected ErrEnvironmentUnset: %s", err)
 	}
 }
