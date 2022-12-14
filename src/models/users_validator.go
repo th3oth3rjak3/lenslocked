@@ -86,17 +86,6 @@ func (uv *userValidator) Create(user *User) error {
 		return ErrInvalidPassword
 	}
 
-	if user.Remember == "" {
-		// We only want to generate a remember token if one wasn't provided.
-		// This is useful in testing scenarios where we want to provide a
-		// specific remember token.
-		token, err := rand.RememberToken()
-		if err != nil {
-			return err
-		}
-		user.Remember = token
-	}
-
 	// normalize email address
 	user.Email = strings.ToLower(user.Email)
 
@@ -104,6 +93,7 @@ func (uv *userValidator) Create(user *User) error {
 	if err := uv.runUserValidationFunctions(
 		user,
 		uv.bcryptPassword,
+		uv.generateDefaultRemember,
 		uv.hmacRemember,
 	); err != nil {
 		return err
@@ -175,5 +165,18 @@ func (uv *userValidator) hmacRemember(user *User) error {
 		return nil
 	}
 	user.RememberHash = uv.hmac.Hash(user.Remember)
+	return nil
+}
+
+// generateDefaultRemember generates a new remember token if one is not set.
+func (uv *userValidator) generateDefaultRemember(user *User) error {
+	if user.Remember != "" {
+		return nil
+	}
+	token, err := rand.RememberToken()
+	if err != nil {
+		return err
+	}
+	user.Remember = token
 	return nil
 }
