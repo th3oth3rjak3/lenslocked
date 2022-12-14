@@ -9,7 +9,7 @@ import (
 	"github.com/joho/godotenv"
 )
 
-func mockUserService(causeDbError bool, causeEnvError bool) (*UserService, error) {
+func mockUserService(causeDbError bool, causeEnvError bool) (UserService, error) {
 	if os.Getenv("GITHUB_ACTION_STATUS_INDICATOR") != "true" {
 		err := godotenv.Load("../.env")
 		if err != nil {

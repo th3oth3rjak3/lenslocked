@@ -2,39 +2,25 @@ package models
 
 import (
 	"errors"
-	"os"
 
-	"lenslocked/hash"
-	"lenslocked/rand"
-
-	"github.com/jinzhu/gorm"
 	_ "github.com/jinzhu/gorm/dialects/postgres"
 
 	"golang.org/x/crypto/bcrypt"
 )
 
-// ErrNotFound is returned when a resource cannot be found in the database.
-var ErrNotFound = errors.New("models: resource not found")
+var (
+	// ErrNotFound is returned when a resource cannot be found in the database.
+	ErrNotFound = errors.New("models: resource not found")
 
-// ErrInvalidId is returned when an invalid ID is provided to a method like Delete.
-var ErrInvalidId = errors.New("models: id provided was invalid")
+	// ErrInvalidId is returned when an invalid ID is provided to a method like Delete.
+	ErrInvalidId = errors.New("models: id provided was invalid")
 
-// ErrInvalidPassword is returned when the user enters an incorrect password
-var ErrInvalidPassword = errors.New("models: incorrect password provided")
+	// ErrInvalidPassword is returned when the user enters an incorrect password
+	ErrInvalidPassword = errors.New("models: incorrect password provided")
 
-// ErrEnvironmentUnset is returned when there are missing environment variables
-var ErrEnvironmentUnset = errors.New("models: missing required environment variables")
-
-// The User object is a GORM model that that represents the user's information.
-type User struct {
-	gorm.Model
-	Name         string
-	Email        string `gorm:"not null;unique_index"`
-	Password     string `gorm:"-"`
-	PasswordHash string `gorm:"not null"`
-	Remember     string `gorm:"-"`
-	RememberHash string `gorm:"not null;unique_index"`
-}
+	// ErrEnvironmentUnset is returned when there are missing environment variables
+	ErrEnvironmentUnset = errors.New("models: missing required environment variables")
+)
 
 // UsersDB is used to interact with the users database.
 //
@@ -66,87 +52,31 @@ type UserDB interface {
 	DestructiveReset() error
 }
 
-// The UserService object holds a reference to the database that is
-// opened after calling the NewUserService method.
-type UserService struct {
+// UserService is a set of methods to manipulate and work with the user
+// model.
+type UserService interface {
+	// Authenticate will verify the provided email address and password
+	// are correct. If they are correct, the user corresponding to that
+	// email is returned. Otherwise, an error will be returned such as:
+	// ErrNotFound, ErrInvalidPassword, or another error if something
+	// else goes wrong.
+	Authenticate(email, password string) (*User, error)
 	UserDB
 }
-
-// userGorm implements the UserDB interface
-type userGorm struct {
-	db   *gorm.DB
-	hmac hash.HMAC
-}
-
-// userValidator is a chained type that performs validation and
-// normalization of data before being passed to the final UserDB implementation
-type userValidator struct {
-	UserDB
-}
-
-// During development if userGorm no longer implements the UserDB interface,
-// this will cause a compilation error.
-var _ UserDB = &userGorm{}
 
 // Creates an instance of the UserService with the provided connection string.
 // After calling new user service, it will be required to close the database
 // connection by later calling the UserService.Close() method.
-func NewUserService(connectionInfo string) (*UserService, error) {
+func NewUserService(connectionInfo string) (UserService, error) {
 	ug, err := newUserGorm(connectionInfo)
 	if err != nil {
 		return nil, err
 	}
-	return &UserService{
+	return &userService{
 		UserDB: &userValidator{
 			UserDB: ug,
 		},
 	}, nil
-}
-
-// newUserGorm creates a new userGorm instance which implements the UserDB interface.
-func newUserGorm(connectionInfo string) (*userGorm, error) {
-	db, err := gorm.Open("postgres", connectionInfo)
-	if err != nil {
-		return nil, err
-	}
-	db.LogMode(true)
-	key := os.Getenv("HASH_KEY")
-	if key == "" {
-		return nil, ErrEnvironmentUnset
-	}
-	hmac := hash.NewHMAC(key)
-	return &userGorm{
-		db:   db,
-		hmac: hmac,
-	}, nil
-}
-
-// Creates a provided user and backfills data like the ID, CreatedAt, and UpdatedAt fields.
-//
-// This doesn't check for errors, just returns any errors during processing.
-func (ug *userGorm) Create(user *User) error {
-	if user.Password == "" {
-		return ErrInvalidPassword
-	}
-	pwBytes := []byte(user.Password)
-	hashedBytes, err := bcrypt.GenerateFromPassword(pwBytes, bcrypt.DefaultCost)
-	if err != nil {
-		return err
-	}
-	user.PasswordHash = string(hashedBytes)
-	user.Password = "" // Clear the user's actual password
-	if user.Remember == "" {
-		// We only want to generate a remember token if one wasn't provided.
-		// This is useful in testing scenarios where we want to provide a
-		// specific remember token.
-		token, err := rand.RememberToken()
-		if err != nil {
-			return err
-		}
-		user.Remember = token
-	}
-	user.RememberHash = ug.hmac.Hash(user.Remember)
-	return ug.db.Create(user).Error
 }
 
 // Authenticates a user with a given email and password.
@@ -154,7 +84,7 @@ func (ug *userGorm) Create(user *User) error {
 // If the password provided is invalid, this will return nil, ErrInvalidPassword
 // If the email and password are both valid, this will return user, nil.
 // Otherwise, any other errors will return nil, error.
-func (us *UserService) Authenticate(email, password string) (*User, error) {
+func (us *userService) Authenticate(email, password string) (*User, error) {
 	foundUser, err := us.ByEmail(email)
 	if err != nil {
 		return nil, err
@@ -173,108 +103,8 @@ func (us *UserService) Authenticate(email, password string) (*User, error) {
 	return foundUser, nil
 }
 
-// Returns the first value from a gorm.DB instance which matches the user object.
-// If the user is found, error will be nil.
-// If the user is not found, the error will be set to ErrNotFound.
-// If some other error occurs, first will return an error with
-// more information about what went wrong. This may not be an error
-// generated by the models package.
-//
-// As a general rule, any error but ErrNotFound should probably result in
-// an HTTP 500 error.
-func first(db *gorm.DB, user *User) error {
-	err := db.First(user).Error
-	if err == gorm.ErrRecordNotFound {
-		return ErrNotFound
-	}
-	return err
-}
-
-// ByID will look up a user with the provided ID.
-// If the user is found, error will be nil.
-// If the user is not found, the error will be set to ErrNotFound.
-// If some other error occurs, ByID will return an error with
-// more information about what went wrong. This may not be an error
-// generated by the models package.
-//
-// As a general rule, any error but ErrNotFound should probably result in
-// an HTTP 500 error.
-func (ug *userGorm) ByID(id uint) (*User, error) {
-	var user User
-	db := ug.db.Where("id = ?", id)
-	err := first(db, &user)
-	return &user, err
-}
-
-// Returns a user by the provided email address.
-// If the user is found, error will be nil.
-// If the user is not found, the error will be set to ErrNotFound.
-// If some other error occurs, ByEmail will return an error with
-// more information about what went wrong. This may not be an error
-// generated by the models package.
-//
-// As a general rule, any error but ErrNotFound should probably result in
-// an HTTP 500 error.
-func (ug *userGorm) ByEmail(email string) (*User, error) {
-	var user User
-	db := ug.db.Where("LOWER(email) = LOWER(?)", email)
-	err := first(db, &user)
-	return &user, err
-}
-
-// ByRemember uses a remember token to look up a user in the database
-// who has the matching token. This method handles hashing of the token.
-// If the user is found, error will be nil.
-// If the user is not found, the error will be set to ErrNotFound.
-// If some other error occurs, ByRemember will return an error with
-// more information about what went wrong. This may not be an error
-// generated by the models package.
-//
-// As a general rule, any error but ErrNotFound should probably result in
-// an HTTP 500 error.
-func (ug *userGorm) ByRemember(token string) (*User, error) {
-	var usr User
-	hashedToken := ug.hmac.Hash(token)
-	err := first(ug.db.Where("remember_hash = ?", hashedToken), &usr)
-	if err != nil {
-		return nil, err
-	}
-	return &usr, nil
-}
-
-// Updates a user in the database. This update method requires a full user object
-// because it overwrites the existing user object. This would be similar to an HTTP PUT,
-// rather than an HTTP PATCH method.
-func (ug *userGorm) Update(user *User) error {
-	if user.Remember != "" {
-		user.RememberHash = ug.hmac.Hash(user.Remember)
-	}
-	return ug.db.Save(user).Error
-}
-
-// Delete will delete the user with the provided ID.
-func (ug *userGorm) Delete(id uint) error {
-	if id < 1 {
-		return ErrInvalidId
-	}
-	usr := User{Model: gorm.Model{ID: id}}
-	return ug.db.Delete(&usr).Error
-}
-
-// Closes the database connection. It can be deferred if desired.
-func (ug *userGorm) Close() error {
-	return ug.db.Close()
-}
-
-// Destructive Reset drops and automigrates the Users table.
-func (ug *userGorm) DestructiveReset() error {
-	if err := ug.db.DropTableIfExists(&User{}).Error; err != nil {
-		return err
-	}
-	return ug.AutoMigrate()
-}
-
-// Runs an automigration for the user table in the database.
-func (ug *userGorm) AutoMigrate() error {
-	return ug.db.AutoMigrate(&User{}).Error
+// The UserService object holds a reference to the database that is
+// opened after calling the NewUserService method.
+type userService struct {
+	UserDB
 }
