@@ -94,6 +94,57 @@ func TestCreateUser(t *testing.T) {
 	}
 }
 
+func TestCreateDuplicateEmailUser(t *testing.T) {
+	us, err := mockUserService(false, false)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer us.Close()
+
+	fakeUser := fakeUserService()
+	user := fakeUserService()
+
+	if err := us.Create(&user); err != nil {
+		t.Fatal(err)
+	}
+	if err := us.Create(&fakeUser); err != ErrEmailTaken {
+		t.Errorf("Expected ErrEmailTaken, Got: %s", err.Error())
+	}
+}
+
+func TestCreateUserWithInvalidEmail(t *testing.T) {
+	us, err := mockUserService(false, false)
+	if err != nil {
+		t.Fatalf("Expected mockUserService, %s", err)
+	}
+	defer us.Close()
+	user := fakeUserService()
+	user.Email = ""
+	err = us.Create(&user)
+	if err != ErrMissingEmail {
+		t.Errorf("Expected ErrMissingEmail, Got: %s", err)
+	}
+	invalidEmails := []string{
+		"fake.com",
+		"fake@123",
+		"fake@.com",
+		"////@/./",
+		"fake",
+		"fake@something.z",
+		"@something.com",
+	}
+
+	for _, email := range invalidEmails {
+		user = fakeUserService()
+		user.Email = email
+		err = us.Create(&user)
+		if err != ErrInvalidEmail {
+			t.Log(user.Email)
+			t.Errorf("Expected ErrInvalidEmail, Got: %s", err)
+		}
+	}
+}
+
 func TestCreateWithEmptyPassword(t *testing.T) {
 	us, err := mockUserService(false, false)
 	if err != nil {
@@ -103,8 +154,8 @@ func TestCreateWithEmptyPassword(t *testing.T) {
 	user := fakeUserService()
 	user.Password = ""
 	err = us.Create(&user)
-	if err != ErrInvalidPassword {
-		t.Errorf("Expected an ErrInvalidPassword error, Got: %s", err)
+	if err != ErrMissingPassword {
+		t.Errorf("Expected an ErrMissingPassword error, Got: %s", err)
 	}
 }
 
@@ -215,7 +266,7 @@ func TestUpdateUser(t *testing.T) {
 
 	user := fakeUserService()
 	remember := user.Remember
-
+	password := user.Password
 	if err := us.Create(&user); err != nil {
 		t.Fatal(err)
 	}
@@ -224,6 +275,7 @@ func TestUpdateUser(t *testing.T) {
 	newName := "Fake User New"
 	user.Name = newName
 	user.Email = newEmail
+	user.Password = password
 	if err = us.Update(&user); err != nil {
 		t.Fatalf("Update user failed: %s", err)
 	}
@@ -245,6 +297,24 @@ func TestUpdateUser(t *testing.T) {
 	}
 }
 
+func TestUpdateUserWithNoChanges(t *testing.T) {
+	us, err := mockUserService(false, false)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer us.Close()
+
+	user := fakeUserService()
+	if err := us.Create(&user); err != nil {
+		t.Fatalf("Expected to create user: %s", err.Error())
+	}
+	userCopy := fakeUserService()
+	userCopy.ID = user.ID
+	if err := us.Update(&userCopy); err != nil {
+		t.Fatalf("Expected a successful update with no changes: %s", err.Error())
+	}
+}
+
 func TestUserByEmail(t *testing.T) {
 	us, err := mockUserService(false, false)
 	if err != nil {
@@ -259,10 +329,14 @@ func TestUserByEmail(t *testing.T) {
 	if err := us.Create(&user); err != nil {
 		t.Fatal(err)
 	}
+	// We should expect the "ByEmail" method to handle normalization to lowercase.
+	user.Email = strings.ToUpper(user.Email)
 	newUsr, err := us.ByEmail(user.Email)
 	if err != nil {
 		t.Fatalf("Error getting user by email. %s", err)
 	}
+	// convert original email back to lowercase. Expect them both to be lowercase.
+	user.Email = strings.ToLower(user.Email)
 	if newUsr.Email != user.Email {
 		t.Errorf("Email invalid. Have: %s, Want: %s", newUsr.Email, user.Email)
 	}
@@ -367,7 +441,6 @@ func TestAuthenticateValidUser(t *testing.T) {
 	user := fakeUserService()
 
 	email := user.Email
-	capsEmail := strings.ToUpper(user.Email)
 	badEmail := user.Email + "123"
 	password := user.Password
 	badPassword := user.Password + user.Password
@@ -379,10 +452,6 @@ func TestAuthenticateValidUser(t *testing.T) {
 	_, err = us.Authenticate(email, password)
 	if err != nil {
 		t.Errorf("Email and password should have been correct: %s", err)
-	}
-	_, err = us.Authenticate(capsEmail, password)
-	if err != nil {
-		t.Errorf("Should be case insensitive: %s", err)
 	}
 	_, err = us.Authenticate(email, badPassword)
 	if err != ErrInvalidPassword {
