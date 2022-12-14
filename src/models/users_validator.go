@@ -60,9 +60,16 @@ func (uv *userValidator) ByEmail(email string) (*User, error) {
 // ByRemember will hash the token and then call ByRemember on the
 // subsequent UserDB layer.
 func (uv *userValidator) ByRemember(token string) (*User, error) {
-	// TODO: validate by remember token
-	hashedToken := uv.hmac.Hash(token)
-	return uv.UserDB.ByRemember(hashedToken)
+	user := &User{
+		Remember: token,
+	}
+	if err := uv.runUserValidationFunctions(
+		user,
+		uv.hmacRemember,
+	); err != nil {
+		return nil, err
+	}
+	return uv.UserDB.ByRemember(user.RememberHash)
 }
 
 // Data Alteration Methods
@@ -79,12 +86,6 @@ func (uv *userValidator) Create(user *User) error {
 		return ErrInvalidPassword
 	}
 
-	// normalize email address
-	user.Email = strings.ToLower(user.Email)
-	if err := uv.runUserValidationFunctions(user, uv.bcryptPassword); err != nil {
-		return err
-	}
-
 	if user.Remember == "" {
 		// We only want to generate a remember token if one wasn't provided.
 		// This is useful in testing scenarios where we want to provide a
@@ -95,7 +96,19 @@ func (uv *userValidator) Create(user *User) error {
 		}
 		user.Remember = token
 	}
-	user.RememberHash = uv.hmac.Hash(user.Remember)
+
+	// normalize email address
+	user.Email = strings.ToLower(user.Email)
+
+	// run normalization/validation
+	if err := uv.runUserValidationFunctions(
+		user,
+		uv.bcryptPassword,
+		uv.hmacRemember,
+	); err != nil {
+		return err
+	}
+
 	return uv.UserDB.Create(user)
 }
 
@@ -106,8 +119,11 @@ func (uv *userValidator) Update(user *User) error {
 	// TODO: check name is not empty string
 	// TODO: check email is not already taken
 	// TODO: validation
-	if user.Remember != "" {
-		user.RememberHash = uv.hmac.Hash(user.Remember)
+	if err := uv.runUserValidationFunctions(
+		user,
+		uv.hmacRemember,
+	); err != nil {
+		return err
 	}
 	return uv.UserDB.Update(user)
 }
@@ -146,5 +162,18 @@ func (uv *userValidator) bcryptPassword(user *User) error {
 	}
 	user.PasswordHash = string(hashedBytes)
 	user.Password = "" // Clear the user's actual password
+	return nil
+}
+
+// hmacRemember takes a User object with a remember token set,
+// hashes the remember token, and sets the user.RememberHash value.
+//
+// WARNING: If the remember token is the empty string, it returns
+// without performing a hash.
+func (uv *userValidator) hmacRemember(user *User) error {
+	if user.Remember == "" {
+		return nil
+	}
+	user.RememberHash = uv.hmac.Hash(user.Remember)
 	return nil
 }
