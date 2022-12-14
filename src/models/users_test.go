@@ -27,7 +27,8 @@ func mockUserService(causeDbError bool, causeEnvError bool) (*UserService, error
 	if err != nil {
 		return nil, err
 	}
-	us.db.LogMode(false)
+	// Log mode set to false...
+	// us.db.LogMode(false)
 
 	// Clear the users table between tests.
 	us.DestructiveReset()
