@@ -9,6 +9,8 @@ import (
 // The number of bytes to use as the length of each remember token.
 const REMEMBER_TOKEN_BYTES = 64
 
+// This error is returned if a negative number is provided to
+// the String or Bytes function.
 var ErrOutOfRange = errors.New("strings: out of range exception")
 
 // Bytes will help us generate n random bytes or will return an
