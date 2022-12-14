@@ -1,13 +1,6 @@
 package models
 
 import (
-	"os"
-
-	"golang.org/x/crypto/bcrypt"
-
-	"lenslocked/hash"
-	"lenslocked/rand"
-
 	"github.com/jinzhu/gorm"
 )
 
@@ -24,13 +17,8 @@ type User struct {
 
 // userGorm implements the UserDB interface
 type userGorm struct {
-	db   *gorm.DB
-	hmac hash.HMAC
+	db *gorm.DB
 }
-
-// During development if userGorm no longer implements the UserDB interface,
-// this will cause a compilation error.
-var _ UserDB = &userGorm{}
 
 // newUserGorm creates a new userGorm instance which implements the UserDB interface.
 func newUserGorm(connectionInfo string) (*userGorm, error) {
@@ -39,42 +27,20 @@ func newUserGorm(connectionInfo string) (*userGorm, error) {
 		return nil, err
 	}
 	db.LogMode(true)
-	key := os.Getenv("HASH_KEY")
-	if key == "" {
-		return nil, ErrEnvironmentUnset
-	}
-	hmac := hash.NewHMAC(key)
 	return &userGorm{
-		db:   db,
-		hmac: hmac,
+		db: db,
 	}, nil
+}
+
+// Turns log mode on or off. This is used primarily for testing purposes.
+func (ug *userGorm) LogMode(dbLogModeEnabled bool) {
+	ug.db.LogMode(dbLogModeEnabled)
 }
 
 // Creates a provided user and backfills data like the ID, CreatedAt, and UpdatedAt fields.
 //
 // This doesn't check for errors, just returns any errors during processing.
 func (ug *userGorm) Create(user *User) error {
-	if user.Password == "" {
-		return ErrInvalidPassword
-	}
-	pwBytes := []byte(user.Password)
-	hashedBytes, err := bcrypt.GenerateFromPassword(pwBytes, bcrypt.DefaultCost)
-	if err != nil {
-		return err
-	}
-	user.PasswordHash = string(hashedBytes)
-	user.Password = "" // Clear the user's actual password
-	if user.Remember == "" {
-		// We only want to generate a remember token if one wasn't provided.
-		// This is useful in testing scenarios where we want to provide a
-		// specific remember token.
-		token, err := rand.RememberToken()
-		if err != nil {
-			return err
-		}
-		user.Remember = token
-	}
-	user.RememberHash = ug.hmac.Hash(user.Remember)
 	return ug.db.Create(user).Error
 }
 
@@ -122,13 +88,14 @@ func (ug *userGorm) ByID(id uint) (*User, error) {
 // an HTTP 500 error.
 func (ug *userGorm) ByEmail(email string) (*User, error) {
 	var user User
-	db := ug.db.Where("LOWER(email) = LOWER(?)", email)
+	db := ug.db.Where("email = ?", email)
 	err := first(db, &user)
 	return &user, err
 }
 
 // ByRemember uses a remember token to look up a user in the database
-// who has the matching token. This method handles hashing of the token.
+// who has the matching token. This method expects the remember value
+// to already be hashed.
 // If the user is found, error will be nil.
 // If the user is not found, the error will be set to ErrNotFound.
 // If some other error occurs, ByRemember will return an error with
@@ -137,10 +104,9 @@ func (ug *userGorm) ByEmail(email string) (*User, error) {
 //
 // As a general rule, any error but ErrNotFound should probably result in
 // an HTTP 500 error.
-func (ug *userGorm) ByRemember(token string) (*User, error) {
+func (ug *userGorm) ByRemember(rememberHash string) (*User, error) {
 	var usr User
-	hashedToken := ug.hmac.Hash(token)
-	err := first(ug.db.Where("remember_hash = ?", hashedToken), &usr)
+	err := first(ug.db.Where("remember_hash = ?", rememberHash), &usr)
 	if err != nil {
 		return nil, err
 	}
@@ -151,17 +117,11 @@ func (ug *userGorm) ByRemember(token string) (*User, error) {
 // because it overwrites the existing user object. This would be similar to an HTTP PUT,
 // rather than an HTTP PATCH method.
 func (ug *userGorm) Update(user *User) error {
-	if user.Remember != "" {
-		user.RememberHash = ug.hmac.Hash(user.Remember)
-	}
 	return ug.db.Save(user).Error
 }
 
 // Delete will delete the user with the provided ID.
 func (ug *userGorm) Delete(id uint) error {
-	if id < 1 {
-		return ErrInvalidId
-	}
 	usr := User{Model: gorm.Model{ID: id}}
 	return ug.db.Delete(&usr).Error
 }

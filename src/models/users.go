@@ -50,6 +50,9 @@ type UserDB interface {
 	// Migration Helpers
 	AutoMigrate() error
 	DestructiveReset() error
+
+	// Testing Helpers
+	LogMode(dbLogModeEnabled bool)
 }
 
 // UserService is a set of methods to manipulate and work with the user
@@ -68,14 +71,12 @@ type UserService interface {
 // After calling new user service, it will be required to close the database
 // connection by later calling the UserService.Close() method.
 func NewUserService(connectionInfo string) (UserService, error) {
-	ug, err := newUserGorm(connectionInfo)
+	uv, err := newUserValidator(connectionInfo)
 	if err != nil {
 		return nil, err
 	}
 	return &userService{
-		UserDB: &userValidator{
-			UserDB: ug,
-		},
+		UserDB: uv,
 	}, nil
 }
 
