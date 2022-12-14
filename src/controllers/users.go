@@ -62,16 +62,17 @@ func (u *Users) Create(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
-	user := models.User{
+	user := &models.User{
 		Name:     formData.Name,
 		Email:    formData.Email,
 		Password: formData.Password,
 	}
-	if err := u.userService.Create(&user); err != nil {
+	if err := u.userService.Create(user); err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
-	fmt.Fprint(w, user)
+	signIn(w, user)
+	http.Redirect(w, r, "/cookietest", http.StatusFound)
 }
 
 // Login is used to verify the provided email address and password and log
@@ -85,20 +86,29 @@ func (u *Users) Login(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	usr, err := u.userService.Authenticate(formData.Email, formData.Password)
-	switch err {
-	case nil:
-		fmt.Fprintln(w, usr)
-	case models.ErrNotFound:
-		fmt.Fprintln(w, "Invalid email address")
-	case models.ErrInvalidPassword:
-		fmt.Fprintln(w, "Invalid password")
-	default:
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-	}
 	if err != nil {
+		switch err {
+		case models.ErrNotFound:
+			fmt.Fprintln(w, "Invalid email address")
+		case models.ErrInvalidPassword:
+			fmt.Fprintln(w, "Invalid password")
+		default:
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+		}
 		return
 	}
-	// cookie := http.Cookie
+
+	signIn(w, usr)
+	http.Redirect(w, r, "/cookietest", http.StatusFound)
+}
+
+// signIn is used to attach the signed-in cookie to the http response.
+func signIn(w http.ResponseWriter, usr *models.User) {
+	cookie := http.Cookie{
+		Name:  "email",
+		Value: usr.Email,
+	}
+	http.SetCookie(w, &cookie)
 }
 
 // Represents the form data that is required when logging in.
@@ -124,4 +134,14 @@ func (l *LoginForm) Bind(r *http.Request) error {
 func (l *LoginForm) IsValid() bool {
 	// TODO: Lookup email in the database to see if it exists?
 	return l.Email != "" && l.Password != ""
+}
+
+// CookieTest is a route handler to display cookie information for testing purposes only.
+func (u *Users) CookieTest(w http.ResponseWriter, r *http.Request) {
+	cookie, err := r.Cookie("email")
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	fmt.Fprintln(w, "Cookie is:", cookie)
 }

@@ -43,6 +43,7 @@ func main() {
 	r.Post("/signup", usersC.Create)
 	r.Get("/login", usersC.LoginView.ServeHTTP)
 	r.Post("/login", usersC.Login)
+	r.Get("/cookietest", usersC.CookieTest)
 
 	// Start server
 	addr := "localhost:3000"

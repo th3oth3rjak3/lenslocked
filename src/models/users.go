@@ -51,11 +51,7 @@ type UserService struct {
 //
 // This doesn't check for errors, just returns any errors during processing.
 func (us *UserService) Create(user *User) error {
-	// pepper := os.Getenv("PEPPER")
-	// if pepper == "" {
-	// 	return ErrEnvironmentUnset
-	// }
-	pwBytes := []byte(user.Password) // + pepper)
+	pwBytes := []byte(user.Password)
 	hashedBytes, err := bcrypt.GenerateFromPassword(pwBytes, bcrypt.DefaultCost)
 	if err != nil {
 		return err
@@ -76,11 +72,7 @@ func (us *UserService) Authenticate(email, password string) (*User, error) {
 		return nil, err
 	}
 
-	// pepper := os.Getenv("PEPPER")
-	// if pepper == "" {
-	// 	return nil, ErrEnvironmentUnset
-	// }
-	pwBytes := []byte(password) //+ pepper)
+	pwBytes := []byte(password)
 	err = bcrypt.CompareHashAndPassword([]byte(foundUser.PasswordHash), pwBytes)
 	if err != nil {
 		switch err {
