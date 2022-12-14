@@ -6,6 +6,7 @@ import (
 	"net/http"
 
 	"lenslocked/models"
+	"lenslocked/rand"
 	"lenslocked/views"
 )
 
@@ -71,7 +72,11 @@ func (u *Users) Create(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
-	signIn(w, user)
+	err := u.signIn(w, user)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
 	http.Redirect(w, r, "/cookietest", http.StatusFound)
 }
 
@@ -98,17 +103,35 @@ func (u *Users) Login(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	signIn(w, usr)
+	err = u.signIn(w, usr)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
 	http.Redirect(w, r, "/cookietest", http.StatusFound)
 }
 
 // signIn is used to attach the signed-in cookie to the http response.
-func signIn(w http.ResponseWriter, usr *models.User) {
+func (u *Users) signIn(w http.ResponseWriter, usr *models.User) error {
+	// If the remember token is empty, generate one.
+	if usr.Remember == "" {
+		token, err := rand.RememberToken()
+		if err != nil {
+			return err
+		}
+		usr.Remember = token
+		err = u.userService.Update(usr)
+		if err != nil {
+			return err
+		}
+	}
+
 	cookie := http.Cookie{
-		Name:  "email",
-		Value: usr.Email,
+		Name:  "remember_token",
+		Value: usr.Remember,
 	}
 	http.SetCookie(w, &cookie)
+	return nil
 }
 
 // Represents the form data that is required when logging in.
@@ -138,10 +161,15 @@ func (l *LoginForm) IsValid() bool {
 
 // CookieTest is a route handler to display cookie information for testing purposes only.
 func (u *Users) CookieTest(w http.ResponseWriter, r *http.Request) {
-	cookie, err := r.Cookie("email")
+	cookie, err := r.Cookie("remember_token")
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
-	fmt.Fprintln(w, "Cookie is:", cookie)
+	usr, err := u.userService.ByRemember(cookie.Value)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	fmt.Fprintf(w, "Should be a user: %+v", usr)
 }

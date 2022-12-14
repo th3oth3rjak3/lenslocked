@@ -88,7 +88,6 @@ func (us *UserService) Create(user *User) error {
 		user.Remember = token
 	}
 	user.RememberHash = us.hmac.Hash(user.Remember)
-	user.Remember = "" // Just in case it was set.
 	return us.db.Create(user).Error
 }
 
@@ -191,7 +190,6 @@ func (us *UserService) ByRemember(token string) (*User, error) {
 func (us *UserService) Update(user *User) error {
 	if user.Remember != "" {
 		user.RememberHash = us.hmac.Hash(user.Remember)
-		user.Remember = "" // clear the Remember string
 	}
 	return us.db.Save(user).Error
 }
