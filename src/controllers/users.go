@@ -6,6 +6,7 @@ import (
 	"net/http"
 
 	"lenslocked/models"
+	"lenslocked/rand"
 	"lenslocked/views"
 )
 
@@ -62,16 +63,21 @@ func (u *Users) Create(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
-	user := models.User{
+	user := &models.User{
 		Name:     formData.Name,
 		Email:    formData.Email,
 		Password: formData.Password,
 	}
-	if err := u.userService.Create(&user); err != nil {
+	if err := u.userService.Create(user); err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
-	fmt.Fprint(w, user)
+	err := u.signIn(w, user)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	http.Redirect(w, r, "/cookietest", http.StatusFound)
 }
 
 // Login is used to verify the provided email address and password and log
@@ -85,16 +91,50 @@ func (u *Users) Login(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	usr, err := u.userService.Authenticate(formData.Email, formData.Password)
-	switch err {
-	case nil:
-		fmt.Fprintln(w, usr)
-	case models.ErrNotFound:
-		fmt.Fprintln(w, "Invalid email address")
-	case models.ErrInvalidPassword:
-		fmt.Fprintln(w, "Invalid password")
-	default:
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+	if err != nil {
+		switch err {
+		case models.ErrNotFound:
+			fmt.Fprintln(w, "Invalid email address")
+		case models.ErrInvalidPassword:
+			fmt.Fprintln(w, "Invalid password")
+		default:
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+		}
+		return
 	}
+
+	err = u.signIn(w, usr)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	http.Redirect(w, r, "/cookietest", http.StatusFound)
+}
+
+// signIn is used to attach the signed-in cookie to the http response.
+func (u *Users) signIn(w http.ResponseWriter, usr *models.User) error {
+	// If the remember token is empty, generate one.
+	if usr.Remember == "" {
+		token, err := rand.RememberToken()
+		if err != nil {
+			return err
+		}
+		usr.Remember = token
+		err = u.userService.Update(usr)
+		if err != nil {
+			return err
+		}
+	}
+
+	cookie := http.Cookie{
+		Name:     "remember_token",
+		Value:    usr.Remember,
+		HttpOnly: true,
+		Secure:   true,
+		SameSite: http.SameSiteStrictMode,
+	}
+	http.SetCookie(w, &cookie)
+	return nil
 }
 
 // Represents the form data that is required when logging in.
@@ -120,4 +160,19 @@ func (l *LoginForm) Bind(r *http.Request) error {
 func (l *LoginForm) IsValid() bool {
 	// TODO: Lookup email in the database to see if it exists?
 	return l.Email != "" && l.Password != ""
+}
+
+// CookieTest is a route handler to display cookie information for testing purposes only.
+func (u *Users) CookieTest(w http.ResponseWriter, r *http.Request) {
+	cookie, err := r.Cookie("remember_token")
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	usr, err := u.userService.ByRemember(cookie.Value)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	fmt.Fprintf(w, "Should be a user: %+v", usr)
 }

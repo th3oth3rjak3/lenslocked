@@ -2,13 +2,14 @@ package models
 
 import (
 	"os"
+	"strings"
 	"testing"
 	"time"
 
 	"github.com/joho/godotenv"
 )
 
-func mockUserService(causeError bool) (*UserService, error) {
+func mockUserService(causeDbError bool, causeEnvError bool) (*UserService, error) {
 	if os.Getenv("GITHUB_ACTION_STATUS_INDICATOR") != "true" {
 		err := godotenv.Load("../.env")
 		if err != nil {
@@ -16,8 +17,11 @@ func mockUserService(causeError bool) (*UserService, error) {
 		}
 	}
 	psqlInfo := os.Getenv("DB_CONNECTION_STRING_TEST")
-	if causeError {
+	if causeDbError {
 		psqlInfo = os.Getenv("DB_CONNECTION_STRING_ERROR")
+	}
+	if causeEnvError {
+		os.Unsetenv("HASH_KEY")
 	}
 	us, err := NewUserService(psqlInfo)
 	if err != nil {
@@ -30,107 +34,105 @@ func mockUserService(causeError bool) (*UserService, error) {
 	return us, nil
 }
 
+func fakeUserService() User {
+	name := "Fake User"
+	email := "fake.user@email.com"
+	remember := "special_remember_token"
+	password := "some special password"
+
+	return User{
+		Name:     name,
+		Email:    email,
+		Password: password,
+		Remember: remember,
+	}
+}
+
 func TestCreateUser(t *testing.T) {
-	us, err := mockUserService(false)
+	us, err := mockUserService(false, false)
 	if err != nil {
 		t.Fatal(err)
 	}
 	defer us.Close()
 
-	name := "Fake User"
-	email := "fake.user@email.com"
+	fakeUser := fakeUserService()
+	user := fakeUserService()
 
-	usr := User{
-		Name:  name,
-		Email: email,
-	}
-	if err := us.Create(&usr); err != nil {
+	if err := us.Create(&user); err != nil {
 		t.Fatal(err)
 	}
 
-	if usr.ID < 1 {
-		t.Errorf("User ID is less than 1. Have: %d, Want: %d", usr.ID, 1)
+	if user.ID < 1 {
+		t.Errorf("User ID is less than 1. Have: %d, Want: %d", user.ID, 1)
 	}
-	if usr.Name != name {
-		t.Errorf("User Name is incorrect. Have: %s, Want: %s", usr.Name, name)
+	if user.Name != fakeUser.Name {
+		t.Errorf("User Name is incorrect. Have: %s, Want: %s", user.Name, fakeUser.Name)
 	}
-	if usr.Email != email {
-		t.Errorf("User Email is incorrect. Have: %s, Want: %s", usr.Email, email)
+	if user.Email != fakeUser.Email {
+		t.Errorf("User Email is incorrect. Have: %s, Want: %s", user.Email, fakeUser.Email)
 	}
-	if time.Since(usr.CreatedAt) > time.Duration(10*time.Second) {
+	if time.Since(user.CreatedAt) > time.Duration(10*time.Second) {
 		expectedMin := time.Now()
 		expectedMax := expectedMin.Add(10 * time.Second)
 		// Because I guess the Go epoch is 01-02-2006 03:04:05 PM (15:04:05)
 		fString := "15:04:05"
 		minStr := expectedMin.Format(fString)
 		maxStr := expectedMax.Format(fString)
-		actual := usr.CreatedAt.Format(fString)
+		actual := user.CreatedAt.Format(fString)
 		t.Errorf("Expected user to be created recently. Have: %v, Want: %v - %v", actual, minStr, maxStr)
 	}
-	if time.Since(usr.UpdatedAt) > time.Duration(10*time.Second) {
+	if time.Since(user.UpdatedAt) > time.Duration(10*time.Second) {
 		expectedMin := time.Now()
 		expectedMax := expectedMin.Add(10 * time.Second)
 		// Because I guess the Go epoch is 01-02-2006 03:04:05 PM (15:04:05)
 		fString := "15:04:05"
 		minStr := expectedMin.Format(fString)
 		maxStr := expectedMax.Format(fString)
-		actual := usr.UpdatedAt.Format(fString)
+		actual := user.UpdatedAt.Format(fString)
 		t.Errorf("Expected user to be updated recently. Have: %v, Want: %v - %v", actual, minStr, maxStr)
 	}
 }
 
-func TestUserNoEnv(t *testing.T) {
-	us, err := mockUserService(false)
-	if err != nil {
-		t.Fatal(err)
-	}
-	name := "fake user"
-	email := "fake.user@email.com"
-	password := "test123"
-
-	usr := &User{
-		Name:     name,
-		Email:    email,
-		Password: password,
-	}
-	env := os.Getenv("PEPPER")
-	os.Unsetenv("PEPPER")
-	err = us.Create(usr)
-	if err != ErrEnvironmentUnset {
-		t.Errorf("Expected ErrEnvironmentUnset: %s", err)
-	}
-	os.Setenv("PEPPER", env)
-}
-
-func TestUserById(t *testing.T) {
-	us, err := mockUserService(false)
+func TestCreateWithEmptyPassword(t *testing.T) {
+	us, err := mockUserService(false, false)
 	if err != nil {
 		t.Fatal(err)
 	}
 	defer us.Close()
-	name := "Fake User"
-	email := "fake.user@email.com"
-
-	usr := User{
-		Name:  name,
-		Email: email,
+	user := fakeUserService()
+	user.Password = ""
+	err = us.Create(&user)
+	if err != ErrInvalidPassword {
+		t.Errorf("Expected an ErrInvalidPassword error, Got: %s", err)
 	}
-	if err := us.Create(&usr); err != nil {
+}
+
+func TestUserById(t *testing.T) {
+	us, err := mockUserService(false, false)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer us.Close()
+
+	fakeUser := fakeUserService()
+	user := fakeUserService()
+
+	if err := us.Create(&user); err != nil {
 		t.Fatal(err)
 	}
 
-	newUsr, err := us.ByID(usr.ID)
+	newUsr, err := us.ByID(user.ID)
 	if err != nil {
 		t.Fatal(err)
 	}
 	if newUsr.ID < 1 {
-		t.Errorf("User ID is less than 1. Have: %d, Want: %d", usr.ID, 1)
+		t.Errorf("User ID is less than 1. Have: %d, Want: %d", newUsr.ID, 1)
 	}
-	if newUsr.Name != name {
-		t.Errorf("User Name is incorrect. Have: %s, Want: %s", usr.Name, name)
+	if newUsr.Name != user.Name || newUsr.Name != fakeUser.Name {
+		t.Errorf("User Name is incorrect. Have: %s, Want: %s", newUsr.Name, fakeUser.Name)
 	}
-	if newUsr.Email != email {
-		t.Errorf("User Email is incorrect. Have: %s, Want: %s", usr.Email, email)
+	if newUsr.Email != user.Email || newUsr.Email != fakeUser.Email {
+		t.Errorf("User Email is incorrect. Have: %s, Want: %s", newUsr.Email, fakeUser.Email)
 	}
 	if time.Since(newUsr.CreatedAt) > time.Duration(10*time.Second) {
 		expectedMin := time.Now()
@@ -155,7 +157,7 @@ func TestUserById(t *testing.T) {
 }
 
 func TestUserByInvalidId(t *testing.T) {
-	us, err := mockUserService(false)
+	us, err := mockUserService(false, false)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -168,7 +170,7 @@ func TestUserByInvalidId(t *testing.T) {
 }
 
 func TestCloseUserServiceConnection(t *testing.T) {
-	us, err := mockUserService(false)
+	us, err := mockUserService(false, false)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -178,7 +180,7 @@ func TestCloseUserServiceConnection(t *testing.T) {
 }
 
 func TestBadDatabaseConnection(t *testing.T) {
-	us, err := mockUserService(true)
+	us, err := mockUserService(true, false)
 	if us != nil {
 		t.Errorf("Expected no user service, Have: %+v", us)
 	}
@@ -188,7 +190,7 @@ func TestBadDatabaseConnection(t *testing.T) {
 }
 
 func TestQueryWithClosedUserService(t *testing.T) {
-	us, err := mockUserService(false)
+	us, err := mockUserService(false, false)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -204,34 +206,32 @@ func TestQueryWithClosedUserService(t *testing.T) {
 }
 
 func TestUpdateUser(t *testing.T) {
-	us, err := mockUserService(false)
+	us, err := mockUserService(false, false)
 	if err != nil {
 		t.Fatal(err)
 	}
 	defer us.Close()
-	name := "Fake User"
-	email := "fake.user@email.com"
 
-	usr := User{
-		Name:  name,
-		Email: email,
-	}
-	if err := us.Create(&usr); err != nil {
+	user := fakeUserService()
+	remember := user.Remember
+
+	if err := us.Create(&user); err != nil {
 		t.Fatal(err)
 	}
+	user.Remember = remember
 	newEmail := "fake.user.new@email.com"
 	newName := "Fake User New"
-	usr.Name = newName
-	usr.Email = newEmail
-	if err = us.Update(&usr); err != nil {
+	user.Name = newName
+	user.Email = newEmail
+	if err = us.Update(&user); err != nil {
 		t.Fatalf("Update user failed: %s", err)
 	}
-	newUser, err := us.ByID(usr.ID)
+	newUser, err := us.ByID(user.ID)
 	if err != nil {
 		t.Fatalf("Get user by ID failed: %s", err)
 	}
-	if newUser.ID != usr.ID {
-		t.Errorf("User ID doesn't match. Have: %d, Want: %d", newUser.ID, usr.ID)
+	if newUser.ID != user.ID {
+		t.Errorf("User ID doesn't match. Have: %d, Want: %d", newUser.ID, user.ID)
 	}
 	if newUser.Name != newName {
 		t.Errorf("User Name wasn't updated. Have: %s, Want: %s", newUser.Name, newName)
@@ -245,41 +245,38 @@ func TestUpdateUser(t *testing.T) {
 }
 
 func TestUserByEmail(t *testing.T) {
-	us, err := mockUserService(false)
+	us, err := mockUserService(false, false)
 	if err != nil {
 		t.Fatal(err)
 	}
 	defer us.Close()
 
-	name := "Fake User"
-	email := "fake.user@email.com"
+	user := fakeUserService()
+	// Try creating a user with an empty remember token
+	user.Remember = ""
 
-	usr := User{
-		Name:  name,
-		Email: email,
-	}
-	if err := us.Create(&usr); err != nil {
+	if err := us.Create(&user); err != nil {
 		t.Fatal(err)
 	}
-	newUsr, err := us.ByEmail(email)
+	newUsr, err := us.ByEmail(user.Email)
 	if err != nil {
 		t.Fatalf("Error getting user by email. %s", err)
 	}
-	if newUsr.Email != email {
-		t.Errorf("Email invalid. Have: %s, Want: %s", newUsr.Email, email)
+	if newUsr.Email != user.Email {
+		t.Errorf("Email invalid. Have: %s, Want: %s", newUsr.Email, user.Email)
 	}
 }
 
 func TestUserByInvalidEmail(t *testing.T) {
-	us, err := mockUserService(false)
+	us, err := mockUserService(false, false)
 	if err != nil {
 		t.Fatal(err)
 	}
 	defer us.Close()
 
-	email := "fake.user@email.com"
+	user := fakeUserService()
 
-	_, err = us.ByEmail(email)
+	_, err = us.ByEmail(user.Email)
 	if err == nil {
 		t.Fatalf("Expected an error. Got: %s", err)
 	}
@@ -289,7 +286,7 @@ func TestUserByInvalidEmail(t *testing.T) {
 }
 
 func TestUserByEmailWithClosedConnection(t *testing.T) {
-	us, err := mockUserService(false)
+	us, err := mockUserService(false, false)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -298,9 +295,9 @@ func TestUserByEmailWithClosedConnection(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	email := "fake.user@email.com"
+	user := fakeUserService()
 
-	_, err = us.ByEmail(email)
+	_, err = us.ByEmail(user.Email)
 	if err == nil {
 		t.Fatalf("Expected an error. Got: %s", err)
 	}
@@ -310,28 +307,26 @@ func TestUserByEmailWithClosedConnection(t *testing.T) {
 }
 
 func TestDeleteUserById(t *testing.T) {
-	us, err := mockUserService(false)
+	us, err := mockUserService(false, false)
 	if err != nil {
 		t.Fatal(err)
 	}
 	defer us.Close()
-	name := "Fake User"
-	email := "fake.user@email.com"
-
-	usr := User{
-		Name:  name,
-		Email: email,
-	}
-	if err := us.Create(&usr); err != nil {
+	user := fakeUserService()
+	if err := us.Create(&user); err != nil {
 		t.Fatal(err)
 	}
-	if err := us.Delete(usr.ID); err != nil {
+	if err := us.Delete(user.ID); err != nil {
 		t.Fatalf("Expected no errors, Got: %s", err)
+	}
+	_, err = us.ByID(user.ID)
+	if err != ErrNotFound {
+		t.Errorf("Expected ErrNotFound, Got: %s", err)
 	}
 }
 
 func TestDeleteUserByInvalidId(t *testing.T) {
-	us, err := mockUserService(false)
+	us, err := mockUserService(false, false)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -347,7 +342,7 @@ func TestDeleteUserByInvalidId(t *testing.T) {
 }
 
 func TestDestructiveReset(t *testing.T) {
-	us, err := mockUserService(false)
+	us, err := mockUserService(false, false)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -363,17 +358,20 @@ func TestDestructiveReset(t *testing.T) {
 }
 
 func TestAuthenticateValidUser(t *testing.T) {
-	us, err := mockUserService(false)
+	us, err := mockUserService(false, false)
 	if err != nil {
 		t.Fatal(err)
 	}
-	email := "fake@email.com"
-	capsEmail := "FAKE@EMAIL.COM"
-	badEmail := "fake.user@email.com"
-	password := "test123"
-	badPassword := "nottest123"
-	usr := &User{Name: "fake user", Email: email, Password: password}
-	err = us.Create(usr)
+	defer us.Close()
+	user := fakeUserService()
+
+	email := user.Email
+	capsEmail := strings.ToUpper(user.Email)
+	badEmail := user.Email + "123"
+	password := user.Password
+	badPassword := user.Password + user.Password
+
+	err = us.Create(&user)
 	if err != nil {
 		t.Errorf("Expected a successful user creation. %s", err)
 	}
@@ -393,10 +391,32 @@ func TestAuthenticateValidUser(t *testing.T) {
 	if err != ErrNotFound {
 		t.Errorf("Expected ErrNotFound: %s", err)
 	}
+}
 
-	os.Unsetenv("PEPPER")
-	_, err = us.Authenticate(email, password)
+func TestByRemember(t *testing.T) {
+	us, err := mockUserService(false, false)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer us.Close()
+	user := fakeUserService()
+	remember := user.Remember
+	err = us.Create(&user)
+	if err != nil {
+		t.Errorf("Expected a successful user creation. %s", err)
+	}
+	newUser, err := us.ByRemember(remember)
+	if err != nil {
+		t.Errorf("Should have found the user, %s", err)
+	}
+	if newUser.ID != user.ID {
+		t.Errorf("Got the wrong user. Have: %+v, Want: %+v", newUser, user)
+	}
+}
+
+func TestMissingEnvironment(t *testing.T) {
+	_, err := mockUserService(false, true)
 	if err != ErrEnvironmentUnset {
-		t.Errorf("Expected ErrEnvironmentUnset: %s", err)
+		t.Errorf("Expected ErrEnvironmentUnset, Got: %s", err)
 	}
 }
