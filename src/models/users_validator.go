@@ -119,9 +119,13 @@ func (uv *userValidator) Update(user *User) error {
 }
 
 func (uv *userValidator) Delete(id uint) error {
-	// TODO: validation
-	if id < 1 {
-		return ErrInvalidId
+	var user User
+	user.ID = id
+	if err := uv.runUserValidationFunctions(
+		&user,
+		uv.idGreaterThan(0),
+	); err != nil {
+		return err
 	}
 	return uv.UserDB.Delete(id)
 }
@@ -179,4 +183,14 @@ func (uv *userValidator) generateDefaultRemember(user *User) error {
 	}
 	user.Remember = token
 	return nil
+}
+
+// idGreaterThan checks to see if the user has an ID greater than n.
+func (uv *userValidator) idGreaterThan(n uint) userValidationFunction {
+	return func(user *User) error {
+		if user.ID <= n {
+			return ErrInvalidId
+		}
+		return nil
+	}
 }
