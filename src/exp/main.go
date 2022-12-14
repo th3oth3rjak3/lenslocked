@@ -1,47 +1,23 @@
 package main
 
 import (
+	"crypto/hmac"
+	"crypto/sha512"
+	"encoding/base64"
 	"fmt"
 
-	"lenslocked/models"
-)
-
-const (
-	host = "localhost"
-	port = 5432
-	user = "Jake"
-	// Add password after user in the connection string if you have one.
-	password = ""
-	dbname   = "lenslocked_dev"
+	"lenslocked/rand"
 )
 
 func main() {
-	psqlInfo := fmt.Sprintf("host=%s port=%d user=%s dbname=%s sslmode=disable", host, port, user, dbname)
-	us, err := models.NewUserService(psqlInfo)
+	token, err := rand.RememberToken()
 	if err != nil {
 		panic(err)
 	}
-	defer us.Close()
-	us.DestructiveReset()
-	// usr := createUser(us)
-	// fmt.Printf("%+v", getUserById(us, usr.ID))
-}
-
-func getUserById(us *models.UserService, id uint) *models.User {
-	usr, err := us.ByID(id)
-	if err != nil {
-		panic(err)
-	}
-	return usr
-}
-
-func createUser(us *models.UserService) *models.User {
-	usr := &models.User{
-		Name:  "Fake User",
-		Email: "fake.user@email.com",
-	}
-	if err := us.Create(usr); err != nil {
-		panic(err)
-	}
-	return usr
+	h := hmac.New(sha512.New, []byte("this-is-my-secret-key"))
+	toHash := []byte(token)
+	h.Write(toHash)
+	b := h.Sum(nil)
+	fmt.Println(token)
+	fmt.Println(base64.URLEncoding.EncodeToString(b))
 }
