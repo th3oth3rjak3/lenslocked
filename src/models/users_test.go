@@ -6,6 +6,8 @@ import (
 	"testing"
 	"time"
 
+	"lenslocked/rand"
+
 	"github.com/joho/godotenv"
 )
 
@@ -36,9 +38,12 @@ func mockUserService(causeDbError bool, causeEnvError bool) (UserService, error)
 }
 
 func fakeUserService() User {
+	remember, err := rand.RememberToken()
+	if err != nil {
+		panic(err)
+	}
 	name := "Fake User"
 	email := "fake.user@email.com"
-	remember := "special_remember_token"
 	password := "some special password"
 
 	return User{
@@ -115,14 +120,14 @@ func TestCreateDuplicateEmailUser(t *testing.T) {
 func TestCreateUserWithInvalidEmail(t *testing.T) {
 	us, err := mockUserService(false, false)
 	if err != nil {
-		t.Fatalf("Expected mockUserService, %s", err)
+		t.Fatalf("Expected mockUserService, %s", err.Error())
 	}
 	defer us.Close()
 	user := fakeUserService()
 	user.Email = ""
 	err = us.Create(&user)
 	if err != ErrEmailMissing {
-		t.Errorf("Expected ErrEmailMissing, Got: %s", err)
+		t.Errorf("Expected ErrEmailMissing, Got: %s", err.Error())
 	}
 	invalidEmails := []string{
 		"fake.com",
@@ -140,7 +145,7 @@ func TestCreateUserWithInvalidEmail(t *testing.T) {
 		err = us.Create(&user)
 		if err != ErrEmailInvalid {
 			t.Log(user.Email)
-			t.Errorf("Expected ErrEmailInvalid, Got: %s", err)
+			t.Errorf("Expected ErrEmailInvalid, Got: %s", err.Error())
 		}
 	}
 }
@@ -155,7 +160,7 @@ func TestCreateWithInvalidPassword(t *testing.T) {
 	user.Password = ""
 	err = us.Create(&user)
 	if err != ErrPasswordRequired {
-		t.Errorf("Expected an ErrPasswordRequired error, Got: %s", err)
+		t.Errorf("Expected an ErrPasswordRequired error, Got: %s", err.Error())
 	}
 	user = fakeUserService()
 	user.Password = "short"
@@ -223,17 +228,17 @@ func TestUserByInvalidId(t *testing.T) {
 	var invalidId uint = 100
 	_, err = us.ByID(invalidId)
 	if err == nil {
-		t.Errorf("Have: %s, Want: %s", err, ErrNotFound)
+		t.Errorf("Have: %s, Want: %s", err.Error(), ErrNotFound.Error())
 	}
 }
 
-func TestCloseUserServiceConnection(t *testing.T) {
+func TestClosedUserServiceConnection(t *testing.T) {
 	us, err := mockUserService(false, false)
 	if err != nil {
 		t.Fatal(err)
 	}
 	if err := us.Close(); err != nil {
-		t.Fatalf("User service db connection errored on close: %s", err)
+		t.Fatalf("User service db connection errored on close: %s", err.Error())
 	}
 }
 
@@ -243,7 +248,7 @@ func TestBadDatabaseConnection(t *testing.T) {
 		t.Errorf("Expected no user service, Have: %+v", us)
 	}
 	if err == nil {
-		t.Errorf("Expected an error, Have: err=%s", err)
+		t.Errorf("Expected an error, Have: err=%s", err.Error())
 	}
 }
 
@@ -259,7 +264,7 @@ func TestQueryWithClosedUserService(t *testing.T) {
 	var id uint = 1
 	_, err = us.ByID(id)
 	if err == nil {
-		t.Errorf("Have: %s, Want: %s", err, "Some Other Error")
+		t.Errorf("Have: %s, Want: %s", err.Error(), "Some Other Error")
 	}
 }
 
@@ -339,7 +344,7 @@ func TestUserByEmail(t *testing.T) {
 	user.Email = strings.ToUpper(user.Email)
 	newUsr, err := us.ByEmail(user.Email)
 	if err != nil {
-		t.Fatalf("Error getting user by email. %s", err)
+		t.Fatalf("Error getting user by email. %s", err.Error())
 	}
 	// convert original email back to lowercase. Expect them both to be lowercase.
 	user.Email = strings.ToLower(user.Email)
@@ -359,10 +364,10 @@ func TestUserByInvalidEmail(t *testing.T) {
 
 	_, err = us.ByEmail(user.Email)
 	if err == nil {
-		t.Fatalf("Expected an error. Got: %s", err)
+		t.Fatalf("Expected an error. Got: %s", err.Error())
 	}
 	if err != ErrNotFound {
-		t.Fatalf("Expected ErrNotFound. Got: %s", err)
+		t.Fatalf("Expected ErrNotFound. Got: %s", err.Error())
 	}
 }
 
@@ -380,10 +385,10 @@ func TestUserByEmailWithClosedConnection(t *testing.T) {
 
 	_, err = us.ByEmail(user.Email)
 	if err == nil {
-		t.Fatalf("Expected an error. Got: %s", err)
+		t.Fatalf("Expected an error. Got: %s", err.Error())
 	}
 	if err == ErrNotFound {
-		t.Fatalf("Expected Some Other Error. Got: %s", err)
+		t.Fatalf("Expected Some Other Error. Got: %s", err.Error())
 	}
 }
 
@@ -398,11 +403,11 @@ func TestDeleteUserById(t *testing.T) {
 		t.Fatal(err)
 	}
 	if err := us.Delete(user.ID); err != nil {
-		t.Fatalf("Expected no errors, Got: %s", err)
+		t.Fatalf("Expected no errors, Got: %s", err.Error())
 	}
 	_, err = us.ByID(user.ID)
 	if err != ErrNotFound {
-		t.Errorf("Expected ErrNotFound, Got: %s", err)
+		t.Errorf("Expected ErrNotFound, Got: %s", err.Error())
 	}
 }
 
@@ -415,10 +420,10 @@ func TestDeleteUserByInvalidId(t *testing.T) {
 
 	err = us.Delete(0)
 	if err == nil {
-		t.Fatalf("Expected an error, Got: %s", err)
+		t.Fatalf("Expected an error, Got: %s", err.Error())
 	}
 	if err != ErrIdInvalid {
-		t.Errorf("Expected ErrIdInvalid, Got: %s", err)
+		t.Errorf("Expected ErrIdInvalid, Got: %s", err.Error())
 	}
 }
 
@@ -428,13 +433,13 @@ func TestDestructiveReset(t *testing.T) {
 		t.Fatal(err)
 	}
 	if err = us.Close(); err != nil {
-		t.Fatalf("Error closing connection: %s", err)
+		t.Fatalf("Error closing connection: %s", err.Error())
 	}
 	if err := us.AutoMigrate(); err == nil {
-		t.Errorf("Expected an automigrate error with closed database: %s", err)
+		t.Errorf("Expected an automigrate error with closed database: %s", err.Error())
 	}
 	if err := us.DestructiveReset(); err == nil {
-		t.Errorf("Expected a desctructive reset error with closed database: %s", err)
+		t.Errorf("Expected a desctructive reset error with closed database: %s", err.Error())
 	}
 }
 
@@ -453,19 +458,37 @@ func TestAuthenticateValidUser(t *testing.T) {
 
 	err = us.Create(&user)
 	if err != nil {
-		t.Errorf("Expected a successful user creation. %s", err)
+		t.Errorf("Expected a successful user creation. %s", err.Error())
 	}
 	_, err = us.Authenticate(email, password)
 	if err != nil {
-		t.Errorf("Email and password should have been correct: %s", err)
+		t.Errorf("Email and password should have been correct: %s", err.Error())
 	}
 	_, err = us.Authenticate(email, badPassword)
 	if err != ErrPasswordIncorrect {
-		t.Errorf("Expected ErrPasswordIncorrect: %s", err)
+		t.Errorf("Expected ErrPasswordIncorrect: %s", err.Error())
 	}
 	_, err = us.Authenticate(badEmail, password)
 	if err != ErrNotFound {
-		t.Errorf("Expected ErrNotFound: %s", err)
+		t.Errorf("Expected ErrNotFound: %s", err.Error())
+	}
+}
+
+func TestInvalidRememberToken(t *testing.T) {
+	us, err := mockUserService(false, false)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer us.Close()
+	user := fakeUserService()
+	remember, err := rand.String(10)
+	if err != nil {
+		t.Errorf("Expected to be able to generate a random base64 string, Got: %s", err.Error())
+	}
+	user.Remember = remember
+	err = us.Create(&user)
+	if err != ErrRememberTokenTooShort {
+		t.Errorf("Expected ErrRememberTokenTooShort, Got: %s", err.Error())
 	}
 }
 
@@ -479,11 +502,11 @@ func TestByRemember(t *testing.T) {
 	remember := user.Remember
 	err = us.Create(&user)
 	if err != nil {
-		t.Errorf("Expected a successful user creation. %s", err)
+		t.Errorf("Expected a successful user creation. %s", err.Error())
 	}
 	newUser, err := us.ByRemember(remember)
 	if err != nil {
-		t.Errorf("Should have found the user, %s", err)
+		t.Errorf("Should have found the user, %s", err.Error())
 	}
 	if newUser.ID != user.ID {
 		t.Errorf("Got the wrong user. Have: %+v, Want: %+v", newUser, user)
@@ -493,6 +516,6 @@ func TestByRemember(t *testing.T) {
 func TestMissingEnvironment(t *testing.T) {
 	_, err := mockUserService(false, true)
 	if err != ErrEnvironmentUnset {
-		t.Errorf("Expected ErrEnvironmentUnset, Got: %s", err)
+		t.Errorf("Expected ErrEnvironmentUnset, Got: %s", err.Error())
 	}
 }

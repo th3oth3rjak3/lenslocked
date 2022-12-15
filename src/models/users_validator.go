@@ -33,6 +33,13 @@ var (
 
 	// ErrPasswordRequired is returned when a user does not provide a password.
 	ErrPasswordRequired = errors.New("models: password is required")
+
+	// ErrRememberTokenTooShort is returned when a remember token is generated
+	// with fewer than 64 bytes.
+	ErrRememberTokenTooShort = errors.New("models: remember token generated with too few bytes")
+
+	// ErrRememberTokenHashRequired is returned when a remember token hash is not generated.
+	ErrRememberHashRequired = errors.New("models: remember token hash is required")
 )
 
 // userValidator is a chained type that performs validation and
@@ -127,7 +134,9 @@ func (uv *userValidator) Create(user *User) error {
 		uv.passwordCryptographer,
 		uv.passwordHashRequirer,
 		uv.rememberTokenGenerator,
+		uv.rememberTokenMinLengthChecker,
 		uv.rememberTokenHasher,
+		uv.rememberHashRequirer,
 		uv.emailNormalizer,
 		uv.emailRequirer,
 		uv.emailPatternMatcher,
@@ -146,7 +155,9 @@ func (uv *userValidator) Update(user *User) error {
 		uv.passwordMinLengthChecker,
 		uv.passwordCryptographer,
 		uv.passwordHashRequirer,
+		uv.rememberTokenMinLengthChecker,
 		uv.rememberTokenHasher,
+		uv.rememberHashRequirer,
 		uv.emailNormalizer,
 		uv.emailRequirer,
 		uv.emailPatternMatcher,
@@ -183,20 +194,14 @@ func (uv *userValidator) runUserValidationFunctions(user *User, fns ...userValid
 	return nil
 }
 
-// WARNING: passwordCryptographer does not validate complexity requirements for a user
-// password. It will only hash passwords that are not an empty string.
-func (uv *userValidator) passwordCryptographer(user *User) error {
-	if user.Password == "" {
+// idGreaterThan checks to see if the user has an ID greater than n.
+func (uv *userValidator) idGreaterThan(n uint) userValidationFunction {
+	return func(user *User) error {
+		if user.ID <= n {
+			return ErrIdInvalid
+		}
 		return nil
 	}
-	pwBytes := []byte(user.Password)
-	hashedBytes, err := bcrypt.GenerateFromPassword(pwBytes, bcrypt.DefaultCost)
-	if err != nil {
-		return err
-	}
-	user.PasswordHash = string(hashedBytes)
-	user.Password = "" // Clear the user's actual password
-	return nil
 }
 
 // rememberTokenHasher takes a User object with a remember token set,
@@ -225,14 +230,29 @@ func (uv *userValidator) rememberTokenGenerator(user *User) error {
 	return nil
 }
 
-// idGreaterThan checks to see if the user has an ID greater than n.
-func (uv *userValidator) idGreaterThan(n uint) userValidationFunction {
-	return func(user *User) error {
-		if user.ID <= n {
-			return ErrIdInvalid
-		}
+// rememberTokenMinLengthChecker returns an ErrRememberTokenTooShort error
+// if a token is generated with fewer than 64 bytes.
+func (uv *userValidator) rememberTokenMinLengthChecker(user *User) error {
+	if user.Remember == "" {
 		return nil
 	}
+	n, err := rand.NBytes(user.Remember)
+	if err != nil {
+		return err
+	}
+	if n < 64 {
+		return ErrRememberTokenTooShort
+	}
+	return nil
+}
+
+// rememberHashRequirer is a developer helper function that ensure a remember token
+// hash is being generated before storing the user into the database.
+func (uv *userValidator) rememberHashRequirer(user *User) error {
+	if user.RememberHash == "" {
+		return ErrRememberHashRequired
+	}
+	return nil
 }
 
 // emailNormalizer handles all of the normalization required for a user's
@@ -278,6 +298,22 @@ func (uv *userValidator) emailAvailabilityChecker(user *User) error {
 	default:
 		return err
 	}
+}
+
+// WARNING: passwordCryptographer does not validate complexity requirements for a user
+// password. It will only hash passwords that are not an empty string.
+func (uv *userValidator) passwordCryptographer(user *User) error {
+	if user.Password == "" {
+		return nil
+	}
+	pwBytes := []byte(user.Password)
+	hashedBytes, err := bcrypt.GenerateFromPassword(pwBytes, bcrypt.DefaultCost)
+	if err != nil {
+		return err
+	}
+	user.PasswordHash = string(hashedBytes)
+	user.Password = "" // Clear the user's actual password
+	return nil
 }
 
 // passwordMinLengthChecker checks to see if a password meets the minimum length

@@ -28,6 +28,16 @@ func Bytes(n int) ([]byte, error) {
 	return b, nil
 }
 
+// NBytes returns the number of bytes that were used to encode the
+// base64 string.
+func NBytes(base64string string) (int, error) {
+	b, err := base64.URLEncoding.DecodeString(base64string)
+	if err != nil {
+		return -1, err
+	}
+	return len(b), nil
+}
+
 // Generates a random, base64 encoded string of size nBytes. This uses
 // the crypto/rand package so it is safe to use with things like remember
 // tokens.
