@@ -12,11 +12,11 @@ var (
 	// ErrNotFound is returned when a resource cannot be found in the database.
 	ErrNotFound = errors.New("models: resource not found")
 
-	// ErrInvalidId is returned when an invalid ID is provided to a method like Delete.
-	ErrInvalidId = errors.New("models: id provided was invalid")
+	// ErrIdInvalid is returned when an invalid ID is provided to a method like Delete.
+	ErrIdInvalid = errors.New("models: id provided was invalid")
 
-	// ErrInvalidPassword is returned when the user enters an incorrect password
-	ErrInvalidPassword = errors.New("models: incorrect password provided")
+	// ErrPasswordIncorrect is returned when the user enters an incorrect password
+	ErrPasswordIncorrect = errors.New("models: incorrect password provided")
 
 	// ErrEnvironmentUnset is returned when there are missing environment variables
 	ErrEnvironmentUnset = errors.New("models: missing required environment variables")
@@ -96,7 +96,7 @@ func (us *userService) Authenticate(email, password string) (*User, error) {
 	if err != nil {
 		switch err {
 		case bcrypt.ErrMismatchedHashAndPassword:
-			return nil, ErrInvalidPassword
+			return nil, ErrPasswordIncorrect
 		default:
 			return nil, err
 		}

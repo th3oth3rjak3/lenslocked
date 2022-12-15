@@ -121,8 +121,8 @@ func TestCreateUserWithInvalidEmail(t *testing.T) {
 	user := fakeUserService()
 	user.Email = ""
 	err = us.Create(&user)
-	if err != ErrMissingEmail {
-		t.Errorf("Expected ErrMissingEmail, Got: %s", err)
+	if err != ErrEmailMissing {
+		t.Errorf("Expected ErrEmailMissing, Got: %s", err)
 	}
 	invalidEmails := []string{
 		"fake.com",
@@ -138,14 +138,14 @@ func TestCreateUserWithInvalidEmail(t *testing.T) {
 		user = fakeUserService()
 		user.Email = email
 		err = us.Create(&user)
-		if err != ErrInvalidEmail {
+		if err != ErrEmailInvalid {
 			t.Log(user.Email)
-			t.Errorf("Expected ErrInvalidEmail, Got: %s", err)
+			t.Errorf("Expected ErrEmailInvalid, Got: %s", err)
 		}
 	}
 }
 
-func TestCreateWithEmptyPassword(t *testing.T) {
+func TestCreateWithInvalidPassword(t *testing.T) {
 	us, err := mockUserService(false, false)
 	if err != nil {
 		t.Fatal(err)
@@ -154,8 +154,14 @@ func TestCreateWithEmptyPassword(t *testing.T) {
 	user := fakeUserService()
 	user.Password = ""
 	err = us.Create(&user)
-	if err != ErrMissingPassword {
-		t.Errorf("Expected an ErrMissingPassword error, Got: %s", err)
+	if err != ErrPasswordRequired {
+		t.Errorf("Expected an ErrPasswordRequired error, Got: %s", err)
+	}
+	user = fakeUserService()
+	user.Password = "short"
+	err = us.Create(&user)
+	if err != ErrPasswordTooShort {
+		t.Errorf("Expected an ErrPasswordTooShort error, Got: %s", err.Error())
 	}
 }
 
@@ -411,8 +417,8 @@ func TestDeleteUserByInvalidId(t *testing.T) {
 	if err == nil {
 		t.Fatalf("Expected an error, Got: %s", err)
 	}
-	if err != ErrInvalidId {
-		t.Errorf("Expected ErrInvalidId, Got: %s", err)
+	if err != ErrIdInvalid {
+		t.Errorf("Expected ErrIdInvalid, Got: %s", err)
 	}
 }
 
@@ -454,8 +460,8 @@ func TestAuthenticateValidUser(t *testing.T) {
 		t.Errorf("Email and password should have been correct: %s", err)
 	}
 	_, err = us.Authenticate(email, badPassword)
-	if err != ErrInvalidPassword {
-		t.Errorf("Expected ErrInvalidPassword: %s", err)
+	if err != ErrPasswordIncorrect {
+		t.Errorf("Expected ErrPasswordIncorrect: %s", err)
 	}
 	_, err = us.Authenticate(badEmail, password)
 	if err != ErrNotFound {

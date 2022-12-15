@@ -1,7 +1,6 @@
 package controllers
 
 import (
-	"errors"
 	"fmt"
 	"net/http"
 
@@ -40,18 +39,7 @@ func (s *SignupForm) Bind(r *http.Request) error {
 	s.Email = r.PostFormValue("email")
 	s.Password = r.PostFormValue("password")
 	s.Name = r.PostFormValue("name")
-	if !s.IsValid() {
-		return errors.New("email, name, or password were not provided")
-	}
 	return nil
-}
-
-// IsValid checks to see if form data for a Signup Form is empty. If any value
-// is not provided, it will return false. If all values are provided, it will
-// return true.
-func (s *SignupForm) IsValid() bool {
-	// TODO: Lookup email in the database to see if it exists?
-	return s.Name != "" && s.Password != "" && s.Email != ""
 }
 
 // Used to process the signup request for a new user.
@@ -94,8 +82,8 @@ func (u *Users) Login(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		switch err {
 		case models.ErrNotFound:
-			fmt.Fprintln(w, "Invalid email address")
-		case models.ErrInvalidPassword:
+			fmt.Fprintln(w, "No account exists with this email address.")
+		case models.ErrPasswordIncorrect:
 			fmt.Fprintln(w, "Invalid password")
 		default:
 			http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -149,17 +137,7 @@ type LoginForm struct {
 func (l *LoginForm) Bind(r *http.Request) error {
 	l.Email = r.PostFormValue("email")
 	l.Password = r.PostFormValue("password")
-	if !l.IsValid() {
-		return errors.New("email or password were not provided or are invalid")
-	}
 	return nil
-}
-
-// IsValid checks to see if email and password are both provided and not empty
-// for the Login Form.
-func (l *LoginForm) IsValid() bool {
-	// TODO: Lookup email in the database to see if it exists?
-	return l.Email != "" && l.Password != ""
 }
 
 // CookieTest is a route handler to display cookie information for testing purposes only.
