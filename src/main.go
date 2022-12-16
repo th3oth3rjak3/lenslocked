@@ -30,14 +30,13 @@ func main() {
 	// Create Services
 	services, err := models.NewServices(os.Getenv("DB_CONNECTION_STRING"))
 	must(err, "Could not initialize services.")
-	// TODO: fix the services.Close and Automigrate/DestructiveReset functions.
-	// defer services.Close()
+	defer services.Close()
 
 	// Run migrations
-	// services.AutoMigrate()
+	services.AutoMigrate()
 
 	// Destructive Reset if AutoMigrate won't work.
-	// us.DestructiveReset()
+	// services.DestructiveReset()
 
 	// Create controllers and views
 	staticC := static.NewStatic()
