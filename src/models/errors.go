@@ -9,7 +9,7 @@ import (
 
 const (
 	// ErrEmailNotFound is returned when a user email cannot be found in the database.
-	ErrEmailNotFound modelError = "no account exists with this email address"
+	ErrUserNotFound modelError = "no account exists with this email address"
 
 	// ErrIdInvalid is returned when an invalid ID is provided to a method like Delete.
 	ErrIdInvalid modelError = "id provided was invalid"
@@ -47,6 +47,9 @@ const (
 
 	// ErrNameRequired is returned when a user fails to provide a name on signup
 	ErrNameRequired modelError = "name is required"
+
+	// ErrGalleryNotFound is returned when a gallery cannot be found in the database.
+	ErrGalleryNotFound modelError = "gallery does not exist"
 )
 
 type modelError string

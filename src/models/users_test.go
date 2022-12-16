@@ -230,7 +230,7 @@ func TestUserByInvalidId(t *testing.T) {
 	var invalidId uint = 100
 	_, err = s.User.ByID(invalidId)
 	if err == nil {
-		t.Errorf("Have: %s, Want: %s", err.Error(), ErrEmailNotFound.Error())
+		t.Errorf("Have: %s, Want: %s", err.Error(), ErrUserNotFound.Error())
 	}
 }
 
@@ -368,7 +368,7 @@ func TestUserByInvalidEmail(t *testing.T) {
 	if err == nil {
 		t.Fatalf("Expected an error. Got: %s", err.Error())
 	}
-	if err != ErrEmailNotFound {
+	if err != ErrUserNotFound {
 		t.Fatalf("Expected ErrNotFound. Got: %s", err.Error())
 	}
 }
@@ -389,7 +389,7 @@ func TestUserByEmailWithClosedConnection(t *testing.T) {
 	if err == nil {
 		t.Fatalf("Expected an error. Got: %s", err.Error())
 	}
-	if err == ErrEmailNotFound {
+	if err == ErrUserNotFound {
 		t.Fatalf("Expected Some Other Error. Got: %s", err.Error())
 	}
 }
@@ -408,7 +408,7 @@ func TestDeleteUserById(t *testing.T) {
 		t.Fatalf("Expected no errors, Got: %s", err.Error())
 	}
 	_, err = s.User.ByID(user.ID)
-	if err != ErrEmailNotFound {
+	if err != ErrUserNotFound {
 		t.Errorf("Expected ErrNotFound, Got: %s", err.Error())
 	}
 }
@@ -471,7 +471,7 @@ func TestAuthenticateValidUser(t *testing.T) {
 		t.Errorf("Expected ErrPasswordIncorrect: %s", err.Error())
 	}
 	_, err = s.User.Authenticate(badEmail, password)
-	if err != ErrEmailNotFound {
+	if err != ErrUserNotFound {
 		t.Errorf("Expected ErrNotFound: %s", err.Error())
 	}
 }
@@ -512,12 +512,5 @@ func TestByRemember(t *testing.T) {
 	}
 	if newUser.ID != user.ID {
 		t.Errorf("Got the wrong user. Have: %+v, Want: %+v", newUser, user)
-	}
-}
-
-func TestMissingEnvironment(t *testing.T) {
-	_, err := mockServices(false, true)
-	if err != ErrEnvironmentUnset {
-		t.Errorf("Expected ErrEnvironmentUnset, Got: %s", err.Error())
 	}
 }

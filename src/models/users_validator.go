@@ -253,7 +253,7 @@ func (uv *userValidator) emailPatternMatcher(user *User) error {
 func (uv *userValidator) emailAvailabilityChecker(user *User) error {
 	testUser, err := uv.ByEmail(user.Email)
 	switch err {
-	case ErrEmailNotFound:
+	case ErrUserNotFound:
 		return nil
 	case nil:
 		if testUser.ID == user.ID {

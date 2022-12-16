@@ -11,10 +11,30 @@ type Gallery struct {
 	Title  string `gorm:"not null"`
 }
 
+// GalleryDB is used to interact with the galleries database.
+//
+// For all single queries:
+// If the gallery is found, error will be nil
+// If the galler is not found, the error will be set to ErrGalleryNotFound
+type GalleryDB interface {
+	Create(gallery *Gallery) error
+}
+
+// GalleryService is a set of methods to manipulate and work with the Gallery model.
 type GalleryService interface {
 	GalleryDB
 }
 
-type GalleryDB interface {
-	Create(gallery *Gallery) error
+// NewGalleryService initializes a GalleryService instance.
+func NewGalleryService(db *gorm.DB) GalleryService {
+	gg := &galleryGorm{db}
+	gv := newGalleryValidator(gg)
+	return &galleryService{
+		GalleryDB: gv,
+	}
+}
+
+// galleryService implements the GalleryService interface.
+type galleryService struct {
+	GalleryDB
 }
