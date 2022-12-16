@@ -1,4 +1,4 @@
-package controllers
+package static
 
 import (
 	"lenslocked/views"
