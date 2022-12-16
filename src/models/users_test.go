@@ -25,16 +25,18 @@ func mockUserService(causeDbError bool, causeEnvError bool) (UserService, error)
 	if causeEnvError {
 		os.Unsetenv("HASH_KEY")
 	}
-	us, err := NewUserService(psqlInfo)
+	services, err := NewServices(psqlInfo)
 	if err != nil {
 		return nil, err
 	}
 	// Log mode set to false...
-	us.LogMode(false)
+	// TODO: Fix this so that we can set log mode on/off at services level
+	services.User.LogMode(false)
 
+	// TODO: fix this so that it can be done at the services level
 	// Clear the users table between tests.
-	us.DestructiveReset()
-	return us, nil
+	services.User.DestructiveReset()
+	return services.User, nil
 }
 
 func fakeUserService() User {

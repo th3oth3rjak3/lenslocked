@@ -1,6 +1,7 @@
 package models
 
 import (
+	"github.com/jinzhu/gorm"
 	_ "github.com/jinzhu/gorm/dialects/postgres"
 
 	"golang.org/x/crypto/bcrypt"
@@ -54,14 +55,12 @@ type UserService interface {
 // Creates an instance of the UserService with the provided connection string.
 // After calling new user service, it will be required to close the database
 // connection by later calling the UserService.Close() method.
-func NewUserService(connectionInfo string) (UserService, error) {
-	uv, err := newUserValidator(connectionInfo)
-	if err != nil {
-		return nil, err
-	}
+func NewUserService(db *gorm.DB) UserService {
+	ug := &userGorm{db}
+	uv := newUserValidator(ug)
 	return &userService{
 		UserDB: uv,
-	}, nil
+	}
 }
 
 // Authenticates a user with a given email and password.

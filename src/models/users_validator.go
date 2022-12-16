@@ -27,22 +27,15 @@ type userValidator struct {
 type userValidationFunction func(*User) error
 
 // Creates a new instance of the userValidator
-func newUserValidator(connectionInfo string) (*userValidator, error) {
+func newUserValidator(ug *userGorm) *userValidator {
 	key := os.Getenv("HASH_KEY")
-	if key == "" {
-		return nil, ErrEnvironmentUnset
-	}
-	gorm, err := newUserGorm(connectionInfo)
-	if err != nil {
-		return nil, err
-	}
 	hmac := hash.NewHMAC(key)
 	regex := regexp.MustCompile(`^[a-z0-9._%+\-]+@[a-z0-9.\-]+\.[a-z]{2,16}$`)
 	return &userValidator{
-		UserDB:     gorm,
+		UserDB:     ug,
 		hmac:       hmac,
 		emailRegex: regex,
-	}, nil
+	}
 }
 
 // Query methods

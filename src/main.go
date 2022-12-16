@@ -13,6 +13,14 @@ import (
 	"github.com/joho/godotenv"
 )
 
+func must(err error, failureMessage string) error {
+	if err != nil {
+		log.Fatalf(failureMessage+": %s", err)
+		return err
+	}
+	return nil
+}
+
 func main() {
 	// Load configuration
 	if err := godotenv.Load(".env"); err != nil {
@@ -20,21 +28,20 @@ func main() {
 	}
 
 	// Create Services
-	us, err := models.NewUserService(os.Getenv("DB_CONNECTION_STRING"))
-	if err != nil {
-		log.Fatalf("Could not initialize the user service: %s", err)
-	}
-	defer us.Close()
+	services, err := models.NewServices(os.Getenv("DB_CONNECTION_STRING"))
+	must(err, "Could not initialize services.")
+	// TODO: fix the services.Close and Automigrate/DestructiveReset functions.
+	// defer services.Close()
 
 	// Run migrations
-	us.AutoMigrate()
+	// services.AutoMigrate()
 
 	// Destructive Reset if AutoMigrate won't work.
 	// us.DestructiveReset()
 
 	// Create controllers and views
 	staticC := static.NewStatic()
-	usersC := users.NewUsersController(us)
+	usersC := users.NewUsersController(services.User)
 
 	// Create a router
 	r := chi.NewRouter()

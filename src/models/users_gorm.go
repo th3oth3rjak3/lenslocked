@@ -20,18 +20,6 @@ type userGorm struct {
 	db *gorm.DB
 }
 
-// newUserGorm creates a new userGorm instance which implements the UserDB interface.
-func newUserGorm(connectionInfo string) (*userGorm, error) {
-	db, err := gorm.Open("postgres", connectionInfo)
-	if err != nil {
-		return nil, err
-	}
-	db.LogMode(true)
-	return &userGorm{
-		db: db,
-	}, nil
-}
-
 // Turns log mode on or off. This is used primarily for testing purposes.
 func (ug *userGorm) LogMode(dbLogModeEnabled bool) {
 	ug.db.LogMode(dbLogModeEnabled)
