@@ -228,7 +228,7 @@ func TestUserByInvalidId(t *testing.T) {
 	var invalidId uint = 100
 	_, err = us.ByID(invalidId)
 	if err == nil {
-		t.Errorf("Have: %s, Want: %s", err.Error(), ErrNotFound.Error())
+		t.Errorf("Have: %s, Want: %s", err.Error(), ErrEmailNotFound.Error())
 	}
 }
 
@@ -366,7 +366,7 @@ func TestUserByInvalidEmail(t *testing.T) {
 	if err == nil {
 		t.Fatalf("Expected an error. Got: %s", err.Error())
 	}
-	if err != ErrNotFound {
+	if err != ErrEmailNotFound {
 		t.Fatalf("Expected ErrNotFound. Got: %s", err.Error())
 	}
 }
@@ -387,7 +387,7 @@ func TestUserByEmailWithClosedConnection(t *testing.T) {
 	if err == nil {
 		t.Fatalf("Expected an error. Got: %s", err.Error())
 	}
-	if err == ErrNotFound {
+	if err == ErrEmailNotFound {
 		t.Fatalf("Expected Some Other Error. Got: %s", err.Error())
 	}
 }
@@ -406,7 +406,7 @@ func TestDeleteUserById(t *testing.T) {
 		t.Fatalf("Expected no errors, Got: %s", err.Error())
 	}
 	_, err = us.ByID(user.ID)
-	if err != ErrNotFound {
+	if err != ErrEmailNotFound {
 		t.Errorf("Expected ErrNotFound, Got: %s", err.Error())
 	}
 }
@@ -469,7 +469,7 @@ func TestAuthenticateValidUser(t *testing.T) {
 		t.Errorf("Expected ErrPasswordIncorrect: %s", err.Error())
 	}
 	_, err = us.Authenticate(badEmail, password)
-	if err != ErrNotFound {
+	if err != ErrEmailNotFound {
 		t.Errorf("Expected ErrNotFound: %s", err.Error())
 	}
 }

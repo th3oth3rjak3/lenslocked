@@ -1,25 +1,9 @@
 package models
 
 import (
-	"errors"
-
 	_ "github.com/jinzhu/gorm/dialects/postgres"
 
 	"golang.org/x/crypto/bcrypt"
-)
-
-var (
-	// ErrNotFound is returned when a resource cannot be found in the database.
-	ErrNotFound = errors.New("models: resource not found")
-
-	// ErrIdInvalid is returned when an invalid ID is provided to a method like Delete.
-	ErrIdInvalid = errors.New("models: id provided was invalid")
-
-	// ErrPasswordIncorrect is returned when the user enters an incorrect password
-	ErrPasswordIncorrect = errors.New("models: incorrect password provided")
-
-	// ErrEnvironmentUnset is returned when there are missing environment variables
-	ErrEnvironmentUnset = errors.New("models: missing required environment variables")
 )
 
 // UsersDB is used to interact with the users database.

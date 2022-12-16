@@ -1,8 +1,6 @@
 package models
 
 import (
-	"errors"
-	"fmt"
 	"os"
 	"regexp"
 	"strings"
@@ -14,33 +12,6 @@ import (
 )
 
 const MIN_PASSWORD_LENGTH = 8
-
-var (
-	// ErrEmailMissing is returned when an email is an empty string
-	ErrEmailMissing = errors.New("models: email address is required")
-
-	// ErrEmailInvalid is returned when a user provides an email that does
-	// not match the allowed pattern.
-	ErrEmailInvalid = errors.New("models: email address is not correctly formatted")
-
-	// ErrEmailTaken is returned when a user tries to update or create a
-	// user object with an email that is already owned by another user.
-	ErrEmailTaken = errors.New("models: email address is already taken")
-
-	// ErrPasswordTooShort is returned when a user provides a password that does not
-	// meet the minimum length requirement.
-	ErrPasswordTooShort = fmt.Errorf("models: password must be at least %d characters long", MIN_PASSWORD_LENGTH)
-
-	// ErrPasswordRequired is returned when a user does not provide a password.
-	ErrPasswordRequired = errors.New("models: password is required")
-
-	// ErrRememberTokenTooShort is returned when a remember token is generated
-	// with fewer than 64 bytes.
-	ErrRememberTokenTooShort = errors.New("models: remember token generated with too few bytes")
-
-	// ErrRememberTokenHashRequired is returned when a remember token hash is not generated.
-	ErrRememberHashRequired = errors.New("models: remember token hash is required")
-)
 
 // userValidator is a chained type that performs validation and
 // normalization of data before being passed to the final UserDB implementation
@@ -129,6 +100,7 @@ func (uv *userValidator) Create(user *User) error {
 	// run normalization/validation
 	if err := uv.runUserValidationFunctions(
 		user,
+		uv.nameRequirer,
 		uv.passwordRequirer,
 		uv.passwordMinLengthChecker,
 		uv.passwordCryptographer,
@@ -152,6 +124,7 @@ func (uv *userValidator) Create(user *User) error {
 func (uv *userValidator) Update(user *User) error {
 	if err := uv.runUserValidationFunctions(
 		user,
+		uv.nameRequirer,
 		uv.passwordMinLengthChecker,
 		uv.passwordCryptographer,
 		uv.passwordHashRequirer,
@@ -287,7 +260,7 @@ func (uv *userValidator) emailPatternMatcher(user *User) error {
 func (uv *userValidator) emailAvailabilityChecker(user *User) error {
 	testUser, err := uv.ByEmail(user.Email)
 	switch err {
-	case ErrNotFound:
+	case ErrEmailNotFound:
 		return nil
 	case nil:
 		if testUser.ID == user.ID {
@@ -341,6 +314,14 @@ func (uv *userValidator) passwordRequirer(user *User) error {
 func (uv *userValidator) passwordHashRequirer(user *User) error {
 	if user.PasswordHash == "" {
 		return ErrPasswordRequired
+	}
+	return nil
+}
+
+// nameRequirer is a function that requires a user to have a name.
+func (uv *userValidator) nameRequirer(user *User) error {
+	if user.Name == "" {
+		return ErrNameRequired
 	}
 	return nil
 }

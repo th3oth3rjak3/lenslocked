@@ -4,7 +4,9 @@
 package views
 
 import (
+	"bytes"
 	"html/template"
+	"io"
 	"net/http"
 	"path/filepath"
 )
@@ -35,15 +37,29 @@ func processViewNames(files []string) {
 
 // ServeHttp is used to implement the http.Handler interface to render basic views.
 func (v *View) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	if err := v.Render(w, nil); err != nil {
-		panic(err)
-	}
+	v.Render(w, nil)
 }
 
 // Render is used to render the view with the predefined layout.
-func (v *View) Render(w http.ResponseWriter, data interface{}) error {
+func (v *View) Render(w http.ResponseWriter, data interface{}) {
 	w.Header().Set("Content-Type", "text/html")
-	return v.Template.ExecuteTemplate(w, v.Layout, nil)
+
+	// Handle various data types:
+	switch data.(type) {
+	case Data:
+		// do nothing because it is expected.
+	default:
+		data = Data{
+			Payload: data,
+		}
+	}
+	var buf bytes.Buffer
+	if err := v.Template.ExecuteTemplate(&buf, v.Layout, data); err != nil {
+		http.Error(w, "Something went wrong. If the problem persists, please email support.", http.StatusInternalServerError)
+		return
+	}
+	// This could return an error, but we don't have a good way of handling it.
+	io.Copy(w, &buf)
 }
 
 // An object to handle webpage Views.

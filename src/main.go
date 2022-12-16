@@ -5,7 +5,8 @@ import (
 	"net/http"
 	"os"
 
-	"lenslocked/controllers"
+	"lenslocked/controllers/static"
+	"lenslocked/controllers/users"
 	"lenslocked/models"
 
 	"github.com/go-chi/chi/v5"
@@ -32,14 +33,14 @@ func main() {
 	// us.DestructiveReset()
 
 	// Create controllers and views
-	staticC := controllers.NewStatic()
-	usersC := controllers.NewUsers(us)
+	staticC := static.NewStatic()
+	usersC := users.NewUsersController(us)
 
 	// Create a router
 	r := chi.NewRouter()
 	r.Get("/", staticC.Home.ServeHTTP)
 	r.Get("/contact", staticC.Contact.ServeHTTP)
-	r.Get("/signup", usersC.NewView.ServeHTTP)
+	r.Get("/signup", usersC.Signup)
 	r.Post("/signup", usersC.Create)
 	r.Get("/login", usersC.LoginView.ServeHTTP)
 	r.Post("/login", usersC.Login)

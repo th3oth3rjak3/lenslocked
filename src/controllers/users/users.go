@@ -1,4 +1,4 @@
-package controllers
+package users
 
 import (
 	"fmt"
@@ -10,8 +10,8 @@ import (
 )
 
 // The Users controller object.
-type Users struct {
-	NewView     *views.View
+type UsersController struct {
+	SignupView  *views.View
 	LoginView   *views.View
 	userService models.UserService
 }
@@ -19,36 +19,30 @@ type Users struct {
 // Instantiates a new Users controller.
 // This will panic if templates are not parsed correctly.
 // Only used during initial startup.
-func NewUsers(us models.UserService) *Users {
-	return &Users{
-		NewView:     views.NewView("bootstrap", "users/new"),
+func NewUsersController(us models.UserService) *UsersController {
+	return &UsersController{
+		SignupView:  views.NewView("bootstrap", "users/new"),
 		LoginView:   views.NewView("bootstrap", "users/login"),
 		userService: us,
 	}
 }
 
-// The contents of the signup form which may be null
-type SignupForm struct {
-	Name     string
-	Email    string
-	Password string
-}
-
-// The bind method checks to ensure that both email and password were provided in the form.
-func (s *SignupForm) Bind(r *http.Request) error {
-	s.Email = r.PostFormValue("email")
-	s.Password = r.PostFormValue("password")
-	s.Name = r.PostFormValue("name")
-	return nil
+// Used to show the signup page to the user who wishes to signup.
+//
+// GET /signup
+func (u *UsersController) Signup(w http.ResponseWriter, r *http.Request) {
+	u.SignupView.Render(w, nil)
 }
 
 // Used to process the signup request for a new user.
 //
 // POST /signup
-func (u *Users) Create(w http.ResponseWriter, r *http.Request) {
+func (u *UsersController) Create(w http.ResponseWriter, r *http.Request) {
 	formData := &SignupForm{}
+	var vd views.Data
 	if err := formData.Bind(r); err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
+		vd.SetAlert(err, true)
+		u.SignupView.Render(w, vd)
 		return
 	}
 	user := &models.User{
@@ -57,12 +51,16 @@ func (u *Users) Create(w http.ResponseWriter, r *http.Request) {
 		Password: formData.Password,
 	}
 	if err := u.userService.Create(user); err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		vd.SetAlert(err, true)
+		u.SignupView.Render(w, vd)
 		return
 	}
 	err := u.signIn(w, user)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		// In this case the user was created, but couldn't login for some weird reason.
+		// We're going to handle this by letting the user attempt to login after
+		// a redirect to the login page. This should be an edge case if it ever happens.
+		http.Redirect(w, r, "/login", http.StatusFound)
 		return
 	}
 	http.Redirect(w, r, "/cookietest", http.StatusFound)
@@ -72,35 +70,32 @@ func (u *Users) Create(w http.ResponseWriter, r *http.Request) {
 // the user in if they have an account and the credentials are correct.
 //
 // POST /login
-func (u *Users) Login(w http.ResponseWriter, r *http.Request) {
+func (u *UsersController) Login(w http.ResponseWriter, r *http.Request) {
+	var vd views.Data
 	formData := &LoginForm{}
 	if err := formData.Bind(r); err != nil {
-		http.Error(w, err.Error(), http.StatusUnauthorized)
+		vd.SetAlert(err, true)
+		u.LoginView.Render(w, vd)
 		return
 	}
 	usr, err := u.userService.Authenticate(formData.Email, formData.Password)
 	if err != nil {
-		switch err {
-		case models.ErrNotFound:
-			fmt.Fprintln(w, "No account exists with this email address.")
-		case models.ErrPasswordIncorrect:
-			fmt.Fprintln(w, "Invalid password")
-		default:
-			http.Error(w, err.Error(), http.StatusInternalServerError)
-		}
+		vd.SetAlert(err, true)
+		u.LoginView.Render(w, vd)
 		return
 	}
 
 	err = u.signIn(w, usr)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		vd.SetAlert(err, true)
+		u.LoginView.Render(w, vd)
 		return
 	}
 	http.Redirect(w, r, "/cookietest", http.StatusFound)
 }
 
 // signIn is used to attach the signed-in cookie to the http response.
-func (u *Users) signIn(w http.ResponseWriter, usr *models.User) error {
+func (u *UsersController) signIn(w http.ResponseWriter, usr *models.User) error {
 	// If the remember token is empty, generate one.
 	if usr.Remember == "" {
 		token, err := rand.RememberToken()
@@ -125,23 +120,8 @@ func (u *Users) signIn(w http.ResponseWriter, usr *models.User) error {
 	return nil
 }
 
-// Represents the form data that is required when logging in.
-type LoginForm struct {
-	Email    string
-	Password string
-}
-
-// The bind method checks to ensure that both email and password were provided in the form.
-// It also assigns the form values to the LoginForm and returns an error if any of the
-// fields are empty.
-func (l *LoginForm) Bind(r *http.Request) error {
-	l.Email = r.PostFormValue("email")
-	l.Password = r.PostFormValue("password")
-	return nil
-}
-
 // CookieTest is a route handler to display cookie information for testing purposes only.
-func (u *Users) CookieTest(w http.ResponseWriter, r *http.Request) {
+func (u *UsersController) CookieTest(w http.ResponseWriter, r *http.Request) {
 	cookie, err := r.Cookie("remember_token")
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)

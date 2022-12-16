@@ -14,7 +14,10 @@
 	</head>
 	<body>
 		{{template "navbar"}}
-		<div class="container-fluid my-5">{{template "body" .}}</div>
+		<div class="container-fluid my-5">
+			{{if .Alert}} {{template "alert" .Alert}} {{end}} {{template "body"
+			.Payload}}
+		</div>
 
 		{{template "footer"}}
 		<script

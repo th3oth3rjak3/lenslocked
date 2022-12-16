@@ -56,7 +56,7 @@ func (ug *userGorm) Create(user *User) error {
 func first(db *gorm.DB, user *User) error {
 	err := db.First(user).Error
 	if err == gorm.ErrRecordNotFound {
-		return ErrNotFound
+		return ErrEmailNotFound
 	}
 	return err
 }
