@@ -47,5 +47,5 @@ func (gc *GalleriesController) Create(w http.ResponseWriter, r *http.Request) {
 		gc.NewView.Render(w, vd)
 		return
 	}
-	fmt.Fprintln(w, gallery)
+	fmt.Fprintln(w, *gallery)
 }
