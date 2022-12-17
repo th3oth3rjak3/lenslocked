@@ -8,6 +8,10 @@ import (
 )
 
 const (
+
+	// ErrGenericNotFound is returned when some unexpected DB object cannot be found
+	ErrGenericNotFound modelError = "item not found"
+
 	// ErrEmailNotFound is returned when a user email cannot be found in the database.
 	ErrUserNotFound modelError = "no account exists with this email address"
 
