@@ -8,6 +8,7 @@ import (
 	"lenslocked/controllers/galleries"
 	"lenslocked/controllers/static"
 	"lenslocked/controllers/users"
+	"lenslocked/middleware"
 	"lenslocked/models"
 
 	"github.com/go-chi/chi/v5"
@@ -46,17 +47,32 @@ func main() {
 
 	// Create a router
 	r := chi.NewRouter()
-	r.Get("/", staticC.Home.ServeHTTP)
-	r.Get("/contact", staticC.Contact.ServeHTTP)
-	r.Get("/signup", usersC.Signup)
-	r.Post("/signup", usersC.Create)
-	r.Get("/login", usersC.LoginView.ServeHTTP)
-	r.Post("/login", usersC.Login)
-	r.Get("/cookietest", usersC.CookieTest)
-
-	// Gallery Routes
-	r.Get("/galleries/new", galleriesC.New)
-	r.Post("/galleries", galleriesC.Create)
+	r.Route("/", func(r chi.Router) {
+		r.Get("/", staticC.Home.ServeHTTP)
+		r.Route("/contact", func(r chi.Router) {
+			r.Get("/", staticC.Contact.ServeHTTP)
+		})
+		r.Route("/signup", func(r chi.Router) {
+			r.Get("/", usersC.Signup)
+			r.Post("/", usersC.Create)
+		})
+		r.Route("/login", func(r chi.Router) {
+			r.Get("/", usersC.LoginView.ServeHTTP)
+			r.Post("/", usersC.Login)
+		})
+		r.Route("/cookietest", func(r chi.Router) {
+			r.Get("/", usersC.CookieTest)
+		})
+		r.Route("/galleries", func(r chi.Router) {
+			// Gallery Routes
+			requireUser := middleware.RequireUser{
+				UserService: services.User,
+			}
+			r.Use(requireUser.Invoke)
+			r.Get("/new", galleriesC.New)
+			r.Post("/", galleriesC.Create)
+		})
+	})
 
 	// Start server
 	addr := "localhost:3000"

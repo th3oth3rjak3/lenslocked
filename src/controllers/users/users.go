@@ -124,12 +124,12 @@ func (u *UsersController) signIn(w http.ResponseWriter, usr *models.User) error 
 func (u *UsersController) CookieTest(w http.ResponseWriter, r *http.Request) {
 	cookie, err := r.Cookie("remember_token")
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		http.Redirect(w, r, "/login", http.StatusFound)
 		return
 	}
 	usr, err := u.userService.ByRemember(cookie.Value)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		http.Redirect(w, r, "/login", http.StatusFound)
 		return
 	}
 	fmt.Fprintf(w, "Should be a user: %+v", usr)

@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"net/http"
 
+	"lenslocked/context"
 	"lenslocked/models"
 	"lenslocked/views"
 )
@@ -32,6 +33,12 @@ func (gc *GalleriesController) New(w http.ResponseWriter, r *http.Request) {
 //
 // POST /galleries
 func (gc *GalleriesController) Create(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+	usr := context.User(ctx)
+	if usr == nil {
+		http.Redirect(w, r, "/login", http.StatusFound)
+		return
+	}
 	formData := &GalleryForm{}
 	var vd views.Data
 	if err := formData.Bind(r); err != nil {
@@ -40,7 +47,8 @@ func (gc *GalleriesController) Create(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	gallery := &models.Gallery{
-		Title: formData.Title,
+		Title:  formData.Title,
+		UserID: usr.ID,
 	}
 	if err := gc.galleryService.Create(gallery); err != nil {
 		vd.SetAlert(err, true)
