@@ -5,6 +5,7 @@ import (
 	"net/http"
 	"os"
 
+	"lenslocked/controllers/galleries"
 	"lenslocked/controllers/static"
 	"lenslocked/controllers/users"
 	"lenslocked/models"
@@ -41,6 +42,7 @@ func main() {
 	// Create controllers and views
 	staticC := static.NewStatic()
 	usersC := users.NewUsersController(services.User)
+	galleriesC := galleries.NewGalleriesController(services.Gallery)
 
 	// Create a router
 	r := chi.NewRouter()
@@ -51,6 +53,9 @@ func main() {
 	r.Get("/login", usersC.LoginView.ServeHTTP)
 	r.Post("/login", usersC.Login)
 	r.Get("/cookietest", usersC.CookieTest)
+
+	// Gallery Routes
+	r.Get("/galleries/new", galleriesC.New)
 
 	// Start server
 	addr := "localhost:3000"

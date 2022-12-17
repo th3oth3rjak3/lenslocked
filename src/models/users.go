@@ -48,9 +48,7 @@ type userService struct {
 	UserDB
 }
 
-// Creates an instance of the UserService with the provided connection string.
-// After calling new user service, it will be required to close the database
-// connection by later calling the UserService.Close() method.
+// Creates an instance of the UserService with the provided db connection.
 func NewUserService(db *gorm.DB) UserService {
 	ug := &userGorm{db}
 	uv := newUserValidator(ug)
