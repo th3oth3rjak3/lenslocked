@@ -56,6 +56,7 @@ func main() {
 
 	// Gallery Routes
 	r.Get("/galleries/new", galleriesC.New)
+	r.Post("/galleries", galleriesC.Create)
 
 	// Start server
 	addr := "localhost:3000"
