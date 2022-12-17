@@ -1,4 +1,4 @@
-package models
+package usersModel
 
 import (
 	"os"
@@ -6,6 +6,7 @@ import (
 	"strings"
 
 	"lenslocked/hash"
+	"lenslocked/models/errorsModel"
 	"lenslocked/rand"
 
 	"golang.org/x/crypto/bcrypt"
@@ -164,7 +165,7 @@ func (uv *userValidator) runUserValidationFunctions(user *User, fns ...userValid
 func (uv *userValidator) idGreaterThan(n uint) userValidationFunction {
 	return func(user *User) error {
 		if user.ID <= n {
-			return ErrIdInvalid
+			return errorsModel.ErrIdInvalid
 		}
 		return nil
 	}
@@ -207,7 +208,7 @@ func (uv *userValidator) rememberTokenMinLengthChecker(user *User) error {
 		return err
 	}
 	if n < 64 {
-		return ErrRememberTokenTooShort
+		return errorsModel.ErrRememberTokenTooShort
 	}
 	return nil
 }
@@ -216,7 +217,7 @@ func (uv *userValidator) rememberTokenMinLengthChecker(user *User) error {
 // hash is being generated before storing the user into the database.
 func (uv *userValidator) rememberHashRequirer(user *User) error {
 	if user.RememberHash == "" {
-		return ErrRememberHashRequired
+		return errorsModel.ErrRememberHashRequired
 	}
 	return nil
 }
@@ -235,7 +236,7 @@ func (uv *userValidator) emailNormalizer(user *User) error {
 // that contained, for example, 5 empty spaces to be equal to the empty string.
 func (uv *userValidator) emailRequirer(user *User) error {
 	if user.Email == "" {
-		return ErrEmailMissing
+		return errorsModel.ErrEmailMissing
 	}
 	return nil
 }
@@ -244,7 +245,7 @@ func (uv *userValidator) emailRequirer(user *User) error {
 // matches a regular expression to ensure email addresses are not malformed.
 func (uv *userValidator) emailPatternMatcher(user *User) error {
 	if !uv.emailRegex.MatchString(user.Email) {
-		return ErrEmailInvalid
+		return errorsModel.ErrEmailInvalid
 	}
 	return nil
 }
@@ -253,13 +254,13 @@ func (uv *userValidator) emailPatternMatcher(user *User) error {
 func (uv *userValidator) emailAvailabilityChecker(user *User) error {
 	testUser, err := uv.ByEmail(user.Email)
 	switch err {
-	case ErrUserNotFound:
+	case errorsModel.ErrUserNotFound:
 		return nil
 	case nil:
 		if testUser.ID == user.ID {
 			return nil
 		} else {
-			return ErrEmailTaken
+			return errorsModel.ErrEmailTaken
 		}
 	default:
 		return err
@@ -291,13 +292,13 @@ func (uv *userValidator) passwordMinLengthChecker(user *User) error {
 	if user.Password == "" || len(user.Password) >= MIN_PASSWORD_LENGTH {
 		return nil
 	}
-	return ErrPasswordTooShort
+	return errorsModel.ErrPasswordTooShort
 }
 
 // passwordRequirer checks to see if a password was provided or not.
 func (uv *userValidator) passwordRequirer(user *User) error {
 	if user.Password == "" {
-		return ErrPasswordRequired
+		return errorsModel.ErrPasswordRequired
 	}
 	return nil
 }
@@ -306,7 +307,7 @@ func (uv *userValidator) passwordRequirer(user *User) error {
 // hash is being generated before storing the user into the database.
 func (uv *userValidator) passwordHashRequirer(user *User) error {
 	if user.PasswordHash == "" {
-		return ErrPasswordRequired
+		return errorsModel.ErrPasswordRequired
 	}
 	return nil
 }
@@ -314,7 +315,7 @@ func (uv *userValidator) passwordHashRequirer(user *User) error {
 // nameRequirer is a function that requires a user to have a name.
 func (uv *userValidator) nameRequirer(user *User) error {
 	if user.Name == "" {
-		return ErrNameRequired
+		return errorsModel.ErrNameRequired
 	}
 	return nil
 }

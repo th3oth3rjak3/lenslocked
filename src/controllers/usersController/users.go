@@ -1,10 +1,10 @@
-package users
+package usersController
 
 import (
 	"fmt"
 	"net/http"
 
-	"lenslocked/models"
+	"lenslocked/models/usersModel"
 	"lenslocked/rand"
 	"lenslocked/views"
 )
@@ -13,13 +13,13 @@ import (
 type UsersController struct {
 	SignupView  *views.View
 	LoginView   *views.View
-	userService models.UserService
+	userService usersModel.UserService
 }
 
 // Instantiates a new Users controller.
 // This will panic if templates are not parsed correctly.
 // Only used during initial startup.
-func NewUsersController(us models.UserService) *UsersController {
+func NewUsersController(us usersModel.UserService) *UsersController {
 	return &UsersController{
 		SignupView:  views.NewView("bootstrap", "users/new"),
 		LoginView:   views.NewView("bootstrap", "users/login"),
@@ -45,7 +45,7 @@ func (u *UsersController) Create(w http.ResponseWriter, r *http.Request) {
 		u.SignupView.Render(w, vd)
 		return
 	}
-	user := &models.User{
+	user := &usersModel.User{
 		Name:     formData.Name,
 		Email:    formData.Email,
 		Password: formData.Password,
@@ -95,7 +95,7 @@ func (u *UsersController) Login(w http.ResponseWriter, r *http.Request) {
 }
 
 // signIn is used to attach the signed-in cookie to the http response.
-func (u *UsersController) signIn(w http.ResponseWriter, usr *models.User) error {
+func (u *UsersController) signIn(w http.ResponseWriter, usr *usersModel.User) error {
 	// If the remember token is empty, generate one.
 	if usr.Remember == "" {
 		token, err := rand.RememberToken()

@@ -1,6 +1,9 @@
-package models
+package servicesModel
 
 import (
+	"lenslocked/models/galleriesModel"
+	"lenslocked/models/usersModel"
+
 	"github.com/jinzhu/gorm"
 	_ "github.com/jinzhu/gorm/dialects/postgres"
 )
@@ -12,15 +15,15 @@ func NewServices(connectionInfo string) (*Services, error) {
 	}
 	db.LogMode(true)
 	return &Services{
-		User:    NewUserService(db),
-		Gallery: NewGalleryService(db),
+		User:    usersModel.NewUserService(db),
+		Gallery: galleriesModel.NewGalleryService(db),
 		db:      db,
 	}, nil
 }
 
 type Services struct {
-	Gallery GalleryService
-	User    UserService
+	Gallery galleriesModel.GalleryService
+	User    usersModel.UserService
 	db      *gorm.DB
 }
 
@@ -36,7 +39,7 @@ func (s *Services) Close() error {
 
 // Destructive Reset drops and automigrates all tables and rebuilds them
 func (s *Services) DestructiveReset() error {
-	err := s.db.DropTableIfExists(&User{}, &Gallery{}).Error
+	err := s.db.DropTableIfExists(&usersModel.User{}, &galleriesModel.Gallery{}).Error
 	if err != nil {
 		return err
 	}
@@ -45,5 +48,5 @@ func (s *Services) DestructiveReset() error {
 
 // Runs an automigration for all tables in the database.
 func (s *Services) AutoMigrate() error {
-	return s.db.AutoMigrate(&User{}, &Gallery{}).Error
+	return s.db.AutoMigrate(&usersModel.User{}, &galleriesModel.Gallery{}).Error
 }

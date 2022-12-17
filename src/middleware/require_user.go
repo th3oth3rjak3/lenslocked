@@ -5,11 +5,11 @@ import (
 	"net/http"
 
 	"lenslocked/context"
-	"lenslocked/models"
+	"lenslocked/models/usersModel"
 )
 
 type RequireUser struct {
-	UserService models.UserService
+	UserService usersModel.UserService
 }
 
 type UserCtx string

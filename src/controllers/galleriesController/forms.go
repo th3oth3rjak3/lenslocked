@@ -1,4 +1,4 @@
-package galleries
+package galleriesController
 
 import (
 	"net/http"

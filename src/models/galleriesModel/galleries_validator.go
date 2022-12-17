@@ -1,4 +1,8 @@
-package models
+package galleriesModel
+
+import (
+	"lenslocked/models/errorsModel"
+)
 
 // galleryValidator is a chained type that performs validation and
 // normalization of data before being passed to the final GalleryDB implementation
@@ -51,7 +55,7 @@ func (gv *galleryValidator) runGalleryValidationFunctions(gallery *Gallery, fns 
 // titleRequirer is a function that requires a gallery to have a title.
 func (gv *galleryValidator) titleRequirer(gallery *Gallery) error {
 	if gallery.Title == "" {
-		return ErrTitleRequired
+		return errorsModel.ErrTitleRequired
 	}
 	return nil
 }
@@ -59,7 +63,7 @@ func (gv *galleryValidator) titleRequirer(gallery *Gallery) error {
 // userIdRequirer is a function that requires a userId to not be 0 or nil
 func (gv *galleryValidator) userIdRequirer(gallery *Gallery) error {
 	if gallery.UserID <= 0 {
-		return ErrUserIdRequired
+		return errorsModel.ErrUserIdRequired
 	}
 	return nil
 }

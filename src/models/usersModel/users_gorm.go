@@ -1,6 +1,8 @@
-package models
+package usersModel
 
 import (
+	"lenslocked/models/errorsModel"
+
 	"github.com/jinzhu/gorm"
 )
 
@@ -39,7 +41,7 @@ func (ug *userGorm) Create(user *User) error {
 func first(db *gorm.DB, user *User) error {
 	err := db.First(user).Error
 	if err == gorm.ErrRecordNotFound {
-		return ErrUserNotFound
+		return errorsModel.ErrUserNotFound
 	}
 	return err
 }

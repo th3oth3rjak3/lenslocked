@@ -1,4 +1,4 @@
-package models
+package servicesModel
 
 import (
 	"os"
@@ -6,6 +6,8 @@ import (
 	"testing"
 	"time"
 
+	"lenslocked/models/errorsModel"
+	"lenslocked/models/usersModel"
 	"lenslocked/rand"
 
 	"github.com/joho/godotenv"
@@ -39,7 +41,7 @@ func mockServices(causeDbError bool, causeEnvError bool) (*Services, error) {
 	return services, nil
 }
 
-func fakeUserService() User {
+func fakeUserService() usersModel.User {
 	remember, err := rand.RememberToken()
 	if err != nil {
 		panic(err)
@@ -48,7 +50,7 @@ func fakeUserService() User {
 	email := "fake.user@email.com"
 	password := "some special password"
 
-	return User{
+	return usersModel.User{
 		Name:     name,
 		Email:    email,
 		Password: password,
@@ -114,7 +116,7 @@ func TestCreateDuplicateEmailUser(t *testing.T) {
 	if err := s.User.Create(&user); err != nil {
 		t.Fatal(err)
 	}
-	if err := s.User.Create(&fakeUser); err != ErrEmailTaken {
+	if err := s.User.Create(&fakeUser); err != errorsModel.ErrEmailTaken {
 		t.Errorf("Expected ErrEmailTaken, Got: %s", err.Error())
 	}
 }
@@ -128,7 +130,7 @@ func TestCreateUserWithInvalidEmail(t *testing.T) {
 	user := fakeUserService()
 	user.Email = ""
 	err = s.User.Create(&user)
-	if err != ErrEmailMissing {
+	if err != errorsModel.ErrEmailMissing {
 		t.Errorf("Expected ErrEmailMissing, Got: %s", err.Error())
 	}
 	invalidEmails := []string{
@@ -145,7 +147,7 @@ func TestCreateUserWithInvalidEmail(t *testing.T) {
 		user = fakeUserService()
 		user.Email = email
 		err = s.User.Create(&user)
-		if err != ErrEmailInvalid {
+		if err != errorsModel.ErrEmailInvalid {
 			t.Log(user.Email)
 			t.Errorf("Expected ErrEmailInvalid, Got: %s", err.Error())
 		}
@@ -161,13 +163,13 @@ func TestCreateWithInvalidPassword(t *testing.T) {
 	user := fakeUserService()
 	user.Password = ""
 	err = s.User.Create(&user)
-	if err != ErrPasswordRequired {
+	if err != errorsModel.ErrPasswordRequired {
 		t.Errorf("Expected an ErrPasswordRequired error, Got: %s", err.Error())
 	}
 	user = fakeUserService()
 	user.Password = "short"
 	err = s.User.Create(&user)
-	if err != ErrPasswordTooShort {
+	if err != errorsModel.ErrPasswordTooShort {
 		t.Errorf("Expected an ErrPasswordTooShort error, Got: %s", err.Error())
 	}
 }
@@ -230,7 +232,7 @@ func TestUserByInvalidId(t *testing.T) {
 	var invalidId uint = 100
 	_, err = s.User.ByID(invalidId)
 	if err == nil {
-		t.Errorf("Have: %s, Want: %s", err.Error(), ErrUserNotFound.Error())
+		t.Errorf("Have: %s, Want: %s", err.Error(), errorsModel.ErrUserNotFound.Error())
 	}
 }
 
@@ -368,7 +370,7 @@ func TestUserByInvalidEmail(t *testing.T) {
 	if err == nil {
 		t.Fatalf("Expected an error. Got: %s", err.Error())
 	}
-	if err != ErrUserNotFound {
+	if err != errorsModel.ErrUserNotFound {
 		t.Fatalf("Expected ErrNotFound. Got: %s", err.Error())
 	}
 }
@@ -389,7 +391,7 @@ func TestUserByEmailWithClosedConnection(t *testing.T) {
 	if err == nil {
 		t.Fatalf("Expected an error. Got: %s", err.Error())
 	}
-	if err == ErrUserNotFound {
+	if err == errorsModel.ErrUserNotFound {
 		t.Fatalf("Expected Some Other Error. Got: %s", err.Error())
 	}
 }
@@ -408,7 +410,7 @@ func TestDeleteUserById(t *testing.T) {
 		t.Fatalf("Expected no errors, Got: %s", err.Error())
 	}
 	_, err = s.User.ByID(user.ID)
-	if err != ErrUserNotFound {
+	if err != errorsModel.ErrUserNotFound {
 		t.Errorf("Expected ErrNotFound, Got: %s", err.Error())
 	}
 }
@@ -424,7 +426,7 @@ func TestDeleteUserByInvalidId(t *testing.T) {
 	if err == nil {
 		t.Fatalf("Expected an error, Got: %s", err.Error())
 	}
-	if err != ErrIdInvalid {
+	if err != errorsModel.ErrIdInvalid {
 		t.Errorf("Expected ErrIdInvalid, Got: %s", err.Error())
 	}
 }
@@ -467,11 +469,11 @@ func TestAuthenticateValidUser(t *testing.T) {
 		t.Errorf("Email and password should have been correct: %s", err.Error())
 	}
 	_, err = s.User.Authenticate(email, badPassword)
-	if err != ErrPasswordIncorrect {
+	if err != errorsModel.ErrPasswordIncorrect {
 		t.Errorf("Expected ErrPasswordIncorrect: %s", err.Error())
 	}
 	_, err = s.User.Authenticate(badEmail, password)
-	if err != ErrUserNotFound {
+	if err != errorsModel.ErrUserNotFound {
 		t.Errorf("Expected ErrNotFound: %s", err.Error())
 	}
 }
@@ -489,7 +491,7 @@ func TestInvalidRememberToken(t *testing.T) {
 	}
 	user.Remember = remember
 	err = s.User.Create(&user)
-	if err != ErrRememberTokenTooShort {
+	if err != errorsModel.ErrRememberTokenTooShort {
 		t.Errorf("Expected ErrRememberTokenTooShort, Got: %s", err.Error())
 	}
 }

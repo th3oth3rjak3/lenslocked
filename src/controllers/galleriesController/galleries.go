@@ -1,30 +1,39 @@
-package galleries
+package galleriesController
 
 import (
 	"fmt"
 	"net/http"
+	"strconv"
 
 	"lenslocked/context"
-	"lenslocked/models"
+	"lenslocked/models/errorsModel"
+	"lenslocked/models/galleriesModel"
 	"lenslocked/views"
+
+	"github.com/go-chi/chi/v5"
 )
 
 // The Galleries controller object.
 type GalleriesController struct {
 	NewView        *views.View
-	galleryService models.GalleryService
+	ShowView       *views.View
+	galleryService galleriesModel.GalleryService
 }
 
 // Instantiates a new Galleries controller.
 // This will panic if templates are not parsed correctly.
 // Only used during initial startup.
-func NewGalleriesController(gs models.GalleryService) *GalleriesController {
+func NewGalleriesController(gs galleriesModel.GalleryService) *GalleriesController {
 	return &GalleriesController{
 		NewView:        views.NewView("bootstrap", "galleries/new"),
+		ShowView:       views.NewView("bootstrap", "galleries/show"),
 		galleryService: gs,
 	}
 }
 
+// Used to show the "Create a Gallery" page to the user
+//
+// GET /galleries/new
 func (gc *GalleriesController) New(w http.ResponseWriter, r *http.Request) {
 	gc.NewView.Render(w, nil)
 }
@@ -46,7 +55,7 @@ func (gc *GalleriesController) Create(w http.ResponseWriter, r *http.Request) {
 		gc.NewView.Render(w, vd)
 		return
 	}
-	gallery := &models.Gallery{
+	gallery := &galleriesModel.Gallery{
 		Title:  formData.Title,
 		UserID: usr.ID,
 	}
@@ -56,4 +65,20 @@ func (gc *GalleriesController) Create(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	fmt.Fprintln(w, *gallery)
+}
+
+// Get a specific gallery by the ID
+//
+// GET /galleries/:id
+func (gc *GalleriesController) Show(w http.ResponseWriter, r *http.Request) {
+	idStr := chi.URLParam(r, "galleryId")
+	data := views.Data{}
+	id, err := strconv.Atoi(idStr)
+	if err != nil {
+		data.SetAlert(errorsModel.ErrGalleryNotFound, true)
+		gc.ShowView.Render(w, data)
+		return
+	}
+	data.Payload = id
+	gc.ShowView.Render(w, data)
 }

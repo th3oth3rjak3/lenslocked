@@ -5,11 +5,11 @@ import (
 	"net/http"
 	"os"
 
-	"lenslocked/controllers/galleries"
-	"lenslocked/controllers/static"
-	"lenslocked/controllers/users"
+	"lenslocked/controllers/galleriesController"
+	"lenslocked/controllers/staticController"
+	"lenslocked/controllers/usersController"
 	"lenslocked/middleware"
-	"lenslocked/models"
+	"lenslocked/models/servicesModel"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/joho/godotenv"
@@ -30,7 +30,7 @@ func main() {
 	}
 
 	// Create Services
-	services, err := models.NewServices(os.Getenv("DB_CONNECTION_STRING"))
+	services, err := servicesModel.NewServices(os.Getenv("DB_CONNECTION_STRING"))
 	must(err, "Could not initialize services.")
 	defer services.Close()
 
@@ -41,9 +41,9 @@ func main() {
 	// services.DestructiveReset()
 
 	// Create controllers and views
-	staticC := static.NewStatic()
-	usersC := users.NewUsersController(services.User)
-	galleriesC := galleries.NewGalleriesController(services.Gallery)
+	staticC := staticController.NewStatic()
+	usersC := usersController.NewUsersController(services.User)
+	galleriesC := galleriesController.NewGalleriesController(services.Gallery)
 
 	// Create a router
 	r := chi.NewRouter()
@@ -69,8 +69,9 @@ func main() {
 				UserService: services.User,
 			}
 			r.Use(requireUser.Invoke)
-			r.Get("/new", galleriesC.New)
 			r.Post("/", galleriesC.Create)
+			r.Get("/new", galleriesC.New)
+			r.Get("/{galleryId}", galleriesC.Show)
 		})
 	})
 

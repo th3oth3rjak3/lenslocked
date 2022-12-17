@@ -1,6 +1,8 @@
-package models
+package usersModel
 
 import (
+	"lenslocked/models/errorsModel"
+
 	"github.com/jinzhu/gorm"
 	_ "github.com/jinzhu/gorm/dialects/postgres"
 
@@ -73,7 +75,7 @@ func (us *userService) Authenticate(email, password string) (*User, error) {
 	if err != nil {
 		switch err {
 		case bcrypt.ErrMismatchedHashAndPassword:
-			return nil, ErrPasswordIncorrect
+			return nil, errorsModel.ErrPasswordIncorrect
 		default:
 			return nil, err
 		}
