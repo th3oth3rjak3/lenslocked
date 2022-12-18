@@ -1,4 +1,4 @@
-package users
+package usersController
 
 import (
 	"net/http"

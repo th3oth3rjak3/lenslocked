@@ -1,6 +1,8 @@
-package models
+package usersModel
 
 import (
+	"lenslocked/models/errorsModel"
+
 	"github.com/jinzhu/gorm"
 )
 
@@ -18,23 +20,6 @@ type User struct {
 // userGorm implements the UserDB interface
 type userGorm struct {
 	db *gorm.DB
-}
-
-// newUserGorm creates a new userGorm instance which implements the UserDB interface.
-func newUserGorm(connectionInfo string) (*userGorm, error) {
-	db, err := gorm.Open("postgres", connectionInfo)
-	if err != nil {
-		return nil, err
-	}
-	db.LogMode(true)
-	return &userGorm{
-		db: db,
-	}, nil
-}
-
-// Turns log mode on or off. This is used primarily for testing purposes.
-func (ug *userGorm) LogMode(dbLogModeEnabled bool) {
-	ug.db.LogMode(dbLogModeEnabled)
 }
 
 // Creates a provided user and backfills data like the ID, CreatedAt, and UpdatedAt fields.
@@ -56,7 +41,7 @@ func (ug *userGorm) Create(user *User) error {
 func first(db *gorm.DB, user *User) error {
 	err := db.First(user).Error
 	if err == gorm.ErrRecordNotFound {
-		return ErrEmailNotFound
+		return errorsModel.ErrUserNotFound
 	}
 	return err
 }
@@ -124,22 +109,4 @@ func (ug *userGorm) Update(user *User) error {
 func (ug *userGorm) Delete(id uint) error {
 	usr := User{Model: gorm.Model{ID: id}}
 	return ug.db.Delete(&usr).Error
-}
-
-// Closes the database connection. It can be deferred if desired.
-func (ug *userGorm) Close() error {
-	return ug.db.Close()
-}
-
-// Destructive Reset drops and automigrates the Users table.
-func (ug *userGorm) DestructiveReset() error {
-	if err := ug.db.DropTableIfExists(&User{}).Error; err != nil {
-		return err
-	}
-	return ug.AutoMigrate()
-}
-
-// Runs an automigration for the user table in the database.
-func (ug *userGorm) AutoMigrate() error {
-	return ug.db.AutoMigrate(&User{}).Error
 }

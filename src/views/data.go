@@ -1,6 +1,10 @@
 package views
 
-import "log"
+import (
+	"log"
+
+	"lenslocked/models/usersModel"
+)
 
 const (
 	// AlertLevelError is used to render level-danger alerts for bootstrap
@@ -32,6 +36,7 @@ type Alert struct {
 // be rendered on the page will be housed in the Payload property.
 type Data struct {
 	Alert   *Alert
+	User    *usersModel.User
 	Payload interface{}
 }
 

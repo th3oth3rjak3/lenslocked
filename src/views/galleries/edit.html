@@ -1,0 +1,36 @@
+{{define "body"}}
+<div class="row justify-content-xl-center">
+	<div class="col-xl-6">
+		<div class="card">
+			<div class="card-header text-bg-dark">Edit your gallery</div>
+			<div class="card-body">{{template "editGalleryForm" .}}</div>
+		</div>
+	</div>
+</div>
+
+{{end}} {{define "editGalleryForm"}}
+<form action="/galleries/{{.ID}}/update" method="POST">
+	<div class="form-floating mb-3">
+		<input
+			type="text"
+			class="form-control"
+			name="title"
+			id="title"
+			placeholder="Gallery Title"
+			value="{{.Title}}"
+		/>
+		<label for="title">What is the title of your gallery?</label>
+	</div>
+
+	<button type="submit" class="btn btn-primary">Edit</button>
+	<button type="button" class="btn btn-danger" onclick="deleteGallery()">
+		Delete
+	</button>
+</form>
+<form action="/galleries/{{.ID}}/delete" method="POST" name="deleteForm"></form>
+<script>
+	function deleteGallery() {
+		document.deleteForm.submit();
+	}
+</script>
+{{end}}

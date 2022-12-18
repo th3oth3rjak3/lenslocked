@@ -9,6 +9,8 @@ import (
 	"io"
 	"net/http"
 	"path/filepath"
+
+	"lenslocked/context"
 )
 
 // The NewView function creates a new View when provided a name for the layout definition and any new files for the view.
@@ -37,24 +39,26 @@ func processViewNames(files []string) {
 
 // ServeHttp is used to implement the http.Handler interface to render basic views.
 func (v *View) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	v.Render(w, nil)
+	v.Render(w, r, nil)
 }
 
 // Render is used to render the view with the predefined layout.
-func (v *View) Render(w http.ResponseWriter, data interface{}) {
+func (v *View) Render(w http.ResponseWriter, r *http.Request, data interface{}) {
 	w.Header().Set("Content-Type", "text/html")
-
+	var vd Data
 	// Handle various data types:
-	switch data.(type) {
+	switch d := data.(type) {
 	case Data:
-		// do nothing because it is expected.
+		vd = d
+
 	default:
-		data = Data{
+		vd = Data{
 			Payload: data,
 		}
 	}
+	vd.User = context.User(r.Context())
 	var buf bytes.Buffer
-	if err := v.Template.ExecuteTemplate(&buf, v.Layout, data); err != nil {
+	if err := v.Template.ExecuteTemplate(&buf, v.Layout, vd); err != nil {
 		http.Error(w, "Something went wrong. If the problem persists, please email support.", http.StatusInternalServerError)
 		return
 	}
