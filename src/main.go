@@ -8,10 +8,11 @@ import (
 	"lenslocked/controllers/galleriesController"
 	"lenslocked/controllers/staticController"
 	"lenslocked/controllers/usersController"
-	"lenslocked/middleware"
+	mw "lenslocked/middleware"
 	"lenslocked/models/servicesModel"
 
 	"github.com/go-chi/chi/v5"
+	"github.com/go-chi/chi/v5/middleware"
 	"github.com/joho/godotenv"
 )
 
@@ -47,6 +48,10 @@ func main() {
 
 	// Create a router
 	r := chi.NewRouter()
+	r.Use(middleware.RequestID)
+	r.Use(middleware.RealIP)
+	r.Use(middleware.Logger)
+	r.Use(middleware.Recoverer)
 	r.Route("/", func(r chi.Router) {
 		r.Get("/", staticC.Home.ServeHTTP)
 		r.Route("/contact", func(r chi.Router) {
@@ -65,7 +70,7 @@ func main() {
 		})
 		r.Route("/galleries", func(r chi.Router) {
 			// Gallery Routes
-			requireUser := middleware.RequireUser{
+			requireUser := mw.RequireUser{
 				UserService: services.User,
 			}
 			r.Use(requireUser.Invoke)

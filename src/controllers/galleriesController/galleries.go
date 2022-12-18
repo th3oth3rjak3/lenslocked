@@ -64,7 +64,8 @@ func (gc *GalleriesController) Create(w http.ResponseWriter, r *http.Request) {
 		gc.NewView.Render(w, vd)
 		return
 	}
-	fmt.Fprintln(w, *gallery)
+	url := fmt.Sprintf("%s/%d", r.URL.Path, gallery.ID)
+	http.Redirect(w, r, url, http.StatusFound)
 }
 
 // Get a specific gallery by the ID
@@ -73,12 +74,18 @@ func (gc *GalleriesController) Create(w http.ResponseWriter, r *http.Request) {
 func (gc *GalleriesController) Show(w http.ResponseWriter, r *http.Request) {
 	idStr := chi.URLParam(r, "galleryId")
 	data := views.Data{}
-	id, err := strconv.Atoi(idStr)
+	id, err := strconv.ParseUint(idStr, 10, 64)
 	if err != nil {
 		data.SetAlert(errorsModel.ErrGalleryNotFound, true)
 		gc.ShowView.Render(w, data)
 		return
 	}
-	data.Payload = id
+	gallery, err := gc.galleryService.ByID(uint(id))
+	if err != nil {
+		data.SetAlert(errorsModel.ErrGalleryNotFound, true)
+		gc.ShowView.Render(w, data)
+		return
+	}
+	data.Payload = gallery
 	gc.ShowView.Render(w, data)
 }
