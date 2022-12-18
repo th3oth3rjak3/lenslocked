@@ -1,0 +1,35 @@
+{{define "body"}}
+<div class="row justify-content-xl-center">
+	<div class="col-xl-6">
+		<table class="table table-hover">
+			<thead>
+				<tr>
+					<th colspan="1" scope="col">ID</th>
+					<th colspan="3" scope="col">Gallery</th>
+					<th colspan="1" scope="col">View</th>
+					<th colspan="1" scope="col">Edit</th>
+				</tr>
+			</thead>
+			<tbody>
+				{{range .}}
+				<tr>
+					<th colspan="1" scope="row">{{.ID}}</th>
+					<td colspan="3">{{.Title}}</td>
+					<td colspan="1">
+						<a href="/galleries/{{.ID}}">View</a>
+					</td>
+					<td colspan="1">
+						<a href="/galleries/{{.ID}}/edit">Edit</a>
+					</td>
+					<td colspan="1"></td>
+				</tr>
+				{{end}}
+			</tbody>
+		</table>
+		<a href="/galleries/new" class="btn btn-primary float-start mt-2"
+			>New Gallery</a
+		>
+	</div>
+</div>
+
+{{end}}

@@ -17,6 +17,7 @@ type Gallery struct {
 // If the gallery is found, error will be nil
 // If the galler is not found, the error will be set to ErrGalleryNotFound
 type GalleryDB interface {
+	ByUserID(userID uint) ([]Gallery, error)
 	ByID(id uint) (*Gallery, error)
 	Create(gallery *Gallery) error
 	Update(gallery *Gallery) error

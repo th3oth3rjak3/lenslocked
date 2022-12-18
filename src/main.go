@@ -74,8 +74,11 @@ func main() {
 				UserService: services.User,
 			}
 			r.Use(requireUser.Invoke)
+			r.Get("/", galleriesC.Index)
 			r.Post("/", galleriesC.Create)
-			r.Get("/new", galleriesC.New)
+			r.Route("/new", func(r chi.Router) {
+				r.Get("/", galleriesC.New)
+			})
 			r.Route("/{galleryId}", func(r chi.Router) {
 				r.Get("/", galleriesC.Show)
 				r.Get("/edit", galleriesC.Edit)

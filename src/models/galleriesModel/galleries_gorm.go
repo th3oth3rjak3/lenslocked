@@ -50,3 +50,10 @@ func (gg *galleryGorm) Delete(id uint) error {
 	gallery := Gallery{Model: gorm.Model{ID: id}}
 	return gg.db.Delete(&gallery).Error
 }
+
+// Return all galleries that belong to the user for the provided UserID.
+func (gg *galleryGorm) ByUserID(userID uint) ([]Gallery, error) {
+	var galleries []Gallery
+	gg.db.Where("user_id = ?", userID).Order("title asc").Find(&galleries)
+	return galleries, nil
+}

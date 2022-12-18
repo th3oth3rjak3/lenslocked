@@ -18,6 +18,7 @@ type GalleriesController struct {
 	NewView        *views.View
 	ShowView       *views.View
 	EditView       *views.View
+	IndexView      *views.View
 	galleryService galleriesModel.GalleryService
 }
 
@@ -29,6 +30,7 @@ func NewGalleriesController(gs galleriesModel.GalleryService) *GalleriesControll
 		NewView:        views.NewView("bootstrap", "galleries/new"),
 		ShowView:       views.NewView("bootstrap", "galleries/show"),
 		EditView:       views.NewView("bootstrap", "galleries/edit"),
+		IndexView:      views.NewView("bootstrap", "galleries/index"),
 		galleryService: gs,
 	}
 }
@@ -65,8 +67,24 @@ func (gc *GalleriesController) Create(w http.ResponseWriter, r *http.Request) {
 		gc.NewView.Render(w, vd)
 		return
 	}
-	url := fmt.Sprintf("%s/%d", r.URL.Path, gallery.ID)
+	url := fmt.Sprintf("%s/%d/edit", r.URL.Path, gallery.ID)
 	http.Redirect(w, r, url, http.StatusFound)
+}
+
+// Shows all galleries owned by a user
+//
+// GET /galleries
+func (gc *GalleriesController) Index(w http.ResponseWriter, r *http.Request) {
+	user := context.User(r.Context())
+	galleries, err := gc.galleryService.ByUserID(user.ID)
+	if err != nil {
+		http.Error(w, "Something went wrong.", http.StatusInternalServerError)
+		return
+	}
+	var vd views.Data
+	vd.Payload = galleries
+	// fmt.Fprint(w, galleries)
+	gc.IndexView.Render(w, vd)
 }
 
 // Get a specific gallery by the ID
@@ -166,8 +184,7 @@ func (gc *GalleriesController) Delete(w http.ResponseWriter, r *http.Request) {
 		gc.EditView.Render(w, vd)
 		return
 	}
-	// TODO: make an index page and redirect the user to GET /galleries
-	fmt.Fprintln(w, "successfully deleted")
+	http.Redirect(w, r, "/galleries", http.StatusFound)
 }
 
 // galleryById gets a gallery by the id passed in the URL params if one exists.
