@@ -76,7 +76,11 @@ func main() {
 			r.Use(requireUser.Invoke)
 			r.Post("/", galleriesC.Create)
 			r.Get("/new", galleriesC.New)
-			r.Get("/{galleryId}", galleriesC.Show)
+			r.Route("/{galleryId}", func(r chi.Router) {
+				r.Get("/", galleriesC.Show)
+				r.Get("/edit", galleriesC.Edit)
+				// r.Post("/update", galleriesC.Update)
+			})
 		})
 	})
 

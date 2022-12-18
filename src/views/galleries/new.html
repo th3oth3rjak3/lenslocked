@@ -3,7 +3,7 @@
 	<div class="col-xl-6">
 		<div class="card">
 			<div class="card-header text-bg-dark">Create a gallery</div>
-			<div class="card-body">{{template "galleryForm"}}</div>
+			<div class="card-body">{{template "galleryForm" .Title}}</div>
 		</div>
 	</div>
 </div>
@@ -17,6 +17,7 @@
 			name="title"
 			id="title"
 			placeholder="Gallery Title"
+			value="{{.Title}}"
 		/>
 		<label for="title">What is the title of your gallery?</label>
 	</div>

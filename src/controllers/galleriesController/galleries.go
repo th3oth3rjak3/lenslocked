@@ -17,6 +17,7 @@ import (
 type GalleriesController struct {
 	NewView        *views.View
 	ShowView       *views.View
+	EditView       *views.View
 	galleryService galleriesModel.GalleryService
 }
 
@@ -27,6 +28,7 @@ func NewGalleriesController(gs galleriesModel.GalleryService) *GalleriesControll
 	return &GalleriesController{
 		NewView:        views.NewView("bootstrap", "galleries/new"),
 		ShowView:       views.NewView("bootstrap", "galleries/show"),
+		EditView:       views.NewView("bootstrap", "galleries/edit"),
 		galleryService: gs,
 	}
 }
@@ -72,20 +74,45 @@ func (gc *GalleriesController) Create(w http.ResponseWriter, r *http.Request) {
 //
 // GET /galleries/:id
 func (gc *GalleriesController) Show(w http.ResponseWriter, r *http.Request) {
+	data := views.Data{}
+	gallery, err := gc.galleryById(w, r)
+	if err != nil {
+		return
+	}
+	data.Payload = gallery
+	gc.ShowView.Render(w, data)
+}
+
+// Edit a specific gallery by the ID
+//
+// GET /galleries/:id/edit
+func (gc *GalleriesController) Edit(w http.ResponseWriter, r *http.Request) {
+	data := views.Data{}
+	gallery, err := gc.galleryById(w, r)
+	if err != nil {
+		return
+	}
+	data.Payload = gallery
+	gc.EditView.Render(w, data)
+}
+
+// galleryById gets a gallery by the id passed in the URL params if one exists.
+// It then returns that gallery and an error if one occurs. This helper function
+// is used for the Show and Edit methods.
+func (gc *GalleriesController) galleryById(w http.ResponseWriter, r *http.Request) (*galleriesModel.Gallery, error) {
 	idStr := chi.URLParam(r, "galleryId")
 	data := views.Data{}
 	id, err := strconv.ParseUint(idStr, 10, 64)
 	if err != nil {
 		data.SetAlert(errorsModel.ErrGalleryNotFound, true)
 		gc.ShowView.Render(w, data)
-		return
+		return nil, err
 	}
 	gallery, err := gc.galleryService.ByID(uint(id))
 	if err != nil {
 		data.SetAlert(errorsModel.ErrGalleryNotFound, true)
 		gc.ShowView.Render(w, data)
-		return
+		return nil, err
 	}
-	data.Payload = gallery
-	gc.ShowView.Render(w, data)
+	return gallery, nil
 }
