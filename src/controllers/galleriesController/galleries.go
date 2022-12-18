@@ -111,12 +111,16 @@ func (gc *GalleriesController) Update(w http.ResponseWriter, r *http.Request) {
 	}
 	var vd views.Data
 	gallery, err := gc.galleryById(w, r)
-	vd.Payload = gallery
 	if err != nil {
 		vd.SetAlert(err, true)
 		gc.EditView.Render(w, vd)
 		return
 	}
+	if gallery.UserID != usr.ID {
+		http.Error(w, "Gallery not found", http.StatusNotFound)
+		return
+	}
+	vd.Payload = gallery
 	formData := &GalleryForm{}
 	if err := formData.Bind(r); err != nil {
 		vd.SetAlert(err, true)
@@ -134,6 +138,36 @@ func (gc *GalleriesController) Update(w http.ResponseWriter, r *http.Request) {
 		Message: "Gallery successfully updated!",
 	}
 	gc.EditView.Render(w, vd)
+}
+
+// Used to delete a gallery by its given id
+//
+// POST /galleries/:id/delete
+func (gc *GalleriesController) Delete(w http.ResponseWriter, r *http.Request) {
+	usr := context.User(r.Context())
+	if usr == nil {
+		http.Redirect(w, r, "/login", http.StatusFound)
+		return
+	}
+	var vd views.Data
+	gallery, err := gc.galleryById(w, r)
+	if err != nil {
+		vd.SetAlert(err, true)
+		gc.EditView.Render(w, vd)
+		return
+	}
+	if gallery.UserID != usr.ID {
+		http.Error(w, "Gallery not found", http.StatusNotFound)
+		return
+	}
+	vd.Payload = gallery
+	if err := gc.galleryService.Delete(gallery.ID); err != nil {
+		vd.SetAlert(err, true)
+		gc.EditView.Render(w, vd)
+		return
+	}
+	// TODO: make an index page and redirect the user to GET /galleries
+	fmt.Fprintln(w, "successfully deleted")
 }
 
 // galleryById gets a gallery by the id passed in the URL params if one exists.

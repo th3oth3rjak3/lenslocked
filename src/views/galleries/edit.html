@@ -22,10 +22,13 @@
 		<label for="title">What is the title of your gallery?</label>
 	</div>
 
-	<button type="submit" class="btn btn-primary">Edit</button>
-	<button type="button" class="btn btn-danger" onclick="quitEditing()">
+	<button type="submit" class="btn btn-primary mb-1">Edit</button>
+	<button type="button" class="btn btn-danger mb-1" onclick="quitEditing()">
 		Cancel
 	</button>
+</form>
+<form action="/galleries/{{.ID}}/delete" method="POST">
+	<button type="submit" class="btn btn-danger mb-1">Delete</button>
 </form>
 <script>
 	function quitEditing() {
