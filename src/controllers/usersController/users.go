@@ -1,7 +1,6 @@
 package usersController
 
 import (
-	"fmt"
 	"net/http"
 
 	"lenslocked/models/usersModel"
@@ -31,7 +30,7 @@ func NewUsersController(us usersModel.UserService) *UsersController {
 //
 // GET /signup
 func (u *UsersController) Signup(w http.ResponseWriter, r *http.Request) {
-	u.SignupView.Render(w, nil)
+	u.SignupView.Render(w, r, nil)
 }
 
 // Used to process the signup request for a new user.
@@ -42,7 +41,7 @@ func (u *UsersController) Create(w http.ResponseWriter, r *http.Request) {
 	var vd views.Data
 	if err := formData.Bind(r); err != nil {
 		vd.SetAlert(err, true)
-		u.SignupView.Render(w, vd)
+		u.SignupView.Render(w, r, vd)
 		return
 	}
 	user := &usersModel.User{
@@ -52,7 +51,7 @@ func (u *UsersController) Create(w http.ResponseWriter, r *http.Request) {
 	}
 	if err := u.userService.Create(user); err != nil {
 		vd.SetAlert(err, true)
-		u.SignupView.Render(w, vd)
+		u.SignupView.Render(w, r, vd)
 		return
 	}
 	err := u.signIn(w, user)
@@ -63,7 +62,7 @@ func (u *UsersController) Create(w http.ResponseWriter, r *http.Request) {
 		http.Redirect(w, r, "/login", http.StatusFound)
 		return
 	}
-	http.Redirect(w, r, "/cookietest", http.StatusFound)
+	http.Redirect(w, r, "/galleries", http.StatusFound)
 }
 
 // Login is used to verify the provided email address and password and log
@@ -75,23 +74,23 @@ func (u *UsersController) Login(w http.ResponseWriter, r *http.Request) {
 	formData := &LoginForm{}
 	if err := formData.Bind(r); err != nil {
 		vd.SetAlert(err, true)
-		u.LoginView.Render(w, vd)
+		u.LoginView.Render(w, r, vd)
 		return
 	}
 	usr, err := u.userService.Authenticate(formData.Email, formData.Password)
 	if err != nil {
 		vd.SetAlert(err, true)
-		u.LoginView.Render(w, vd)
+		u.LoginView.Render(w, r, vd)
 		return
 	}
 
 	err = u.signIn(w, usr)
 	if err != nil {
 		vd.SetAlert(err, true)
-		u.LoginView.Render(w, vd)
+		u.LoginView.Render(w, r, vd)
 		return
 	}
-	http.Redirect(w, r, "/cookietest", http.StatusFound)
+	http.Redirect(w, r, "/galleries", http.StatusFound)
 }
 
 // signIn is used to attach the signed-in cookie to the http response.
@@ -118,19 +117,4 @@ func (u *UsersController) signIn(w http.ResponseWriter, usr *usersModel.User) er
 	}
 	http.SetCookie(w, &cookie)
 	return nil
-}
-
-// CookieTest is a route handler to display cookie information for testing purposes only.
-func (u *UsersController) CookieTest(w http.ResponseWriter, r *http.Request) {
-	cookie, err := r.Cookie("remember_token")
-	if err != nil {
-		http.Redirect(w, r, "/login", http.StatusFound)
-		return
-	}
-	usr, err := u.userService.ByRemember(cookie.Value)
-	if err != nil {
-		http.Redirect(w, r, "/login", http.StatusFound)
-		return
-	}
-	fmt.Fprintf(w, "Should be a user: %+v", usr)
 }

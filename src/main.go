@@ -52,6 +52,11 @@ func main() {
 	r.Use(middleware.RealIP)
 	r.Use(middleware.Logger)
 	r.Use(middleware.Recoverer)
+	userMw := mw.User{
+		UserService: services.User,
+	}
+
+	r.Use(userMw.Invoke)
 	r.Route("/", func(r chi.Router) {
 		r.Get("/", staticC.Home.ServeHTTP)
 		r.Route("/contact", func(r chi.Router) {
@@ -65,13 +70,10 @@ func main() {
 			r.Get("/", usersC.LoginView.ServeHTTP)
 			r.Post("/", usersC.Login)
 		})
-		r.Route("/cookietest", func(r chi.Router) {
-			r.Get("/", usersC.CookieTest)
-		})
 		r.Route("/galleries", func(r chi.Router) {
 			// Gallery Routes
 			requireUser := mw.RequireUser{
-				UserService: services.User,
+				User: userMw,
 			}
 			r.Use(requireUser.Invoke)
 			r.Get("/", galleriesC.Index)
