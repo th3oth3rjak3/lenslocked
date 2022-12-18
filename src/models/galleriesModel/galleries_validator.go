@@ -22,10 +22,8 @@ func newGalleryValidator(gg *galleryGorm) *galleryValidator {
 	}
 }
 
-// Create ensures that the password is not empty, meets the complexity
-// requirements, and then generates a hash. It also normalizes the email
-// address by setting it to lowercase. It also creates a remember token
-// and finally calls the subsequent UserDB layer's Create method.
+// Create ensures that the gallery contains a userID fo the owner of
+// the gallery and a title for the gallery.
 func (gv *galleryValidator) Create(gallery *Gallery) error {
 	// run normalization/validation
 	if err := gv.runGalleryValidationFunctions(
@@ -37,6 +35,21 @@ func (gv *galleryValidator) Create(gallery *Gallery) error {
 	}
 
 	return gv.GalleryDB.Create(gallery)
+}
+
+// Update ensures that the gallery has a UserID for the owner of the gallery
+// and a title.
+func (gv *galleryValidator) Update(gallery *Gallery) error {
+	// run normalization/validation
+	if err := gv.runGalleryValidationFunctions(
+		gallery,
+		gv.userIdRequirer,
+		gv.titleRequirer,
+	); err != nil {
+		return err
+	}
+
+	return gv.GalleryDB.Update(gallery)
 }
 
 // runUserValidationFunctions is a function which takes a user object

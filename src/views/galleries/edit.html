@@ -32,7 +32,7 @@
 		const url = window.location.href;
 		window.location.href = window.location.href
 			.split("/")
-			.filter((val) => val !== "edit")
+			.filter((val) => val !== "edit" && val !== "update")
 			.join("/");
 	}
 </script>

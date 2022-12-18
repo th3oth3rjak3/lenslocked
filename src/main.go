@@ -79,7 +79,7 @@ func main() {
 			r.Route("/{galleryId}", func(r chi.Router) {
 				r.Get("/", galleriesC.Show)
 				r.Get("/edit", galleriesC.Edit)
-				// r.Post("/update", galleriesC.Update)
+				r.Post("/update", galleriesC.Update)
 			})
 		})
 	})

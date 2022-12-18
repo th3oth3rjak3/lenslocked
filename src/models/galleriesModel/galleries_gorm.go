@@ -38,3 +38,15 @@ func (gg *galleryGorm) ByID(id uint) (*Gallery, error) {
 	}
 	return &gallery, err
 }
+
+// Update will apply updates to a gallery object and save the changes in
+// the database.
+func (gg *galleryGorm) Update(gallery *Gallery) error {
+	return gg.db.Save(gallery).Error
+}
+
+// Delete will delete the gallery with the provided ID.
+func (gg *galleryGorm) Delete(id uint) error {
+	gallery := Gallery{Model: gorm.Model{ID: id}}
+	return gg.db.Delete(&gallery).Error
+}

@@ -19,6 +19,8 @@ type Gallery struct {
 type GalleryDB interface {
 	ByID(id uint) (*Gallery, error)
 	Create(gallery *Gallery) error
+	Update(gallery *Gallery) error
+	Delete(id uint) error
 }
 
 // GalleryService is a set of methods to manipulate and work with the Gallery model.
