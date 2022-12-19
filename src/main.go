@@ -44,7 +44,7 @@ func main() {
 	// Create controllers and views
 	staticC := staticController.NewStatic()
 	usersC := usersController.NewUsersController(services.User)
-	galleriesC := galleriesController.NewGalleriesController(services.Gallery)
+	galleriesC := galleriesController.NewGalleriesController(services.Gallery, services.Image)
 
 	// Create a router
 	r := chi.NewRouter()
@@ -53,10 +53,15 @@ func main() {
 	r.Use(middleware.Logger)
 	r.Use(middleware.Recoverer)
 	userMw := mw.User{
-		UserService: services.User,
+		UserService:    services.User,
+		GalleryService: services.Gallery,
+	}
+	requireUser := mw.RequireUser{
+		User: userMw,
 	}
 
 	r.Use(userMw.Invoke)
+	fs := http.FileServer(http.Dir("./images/galleries/"))
 	r.Route("/", func(r chi.Router) {
 		r.Get("/", staticC.Home.ServeHTTP)
 		r.Route("/contact", func(r chi.Router) {
@@ -72,9 +77,7 @@ func main() {
 		})
 		r.Route("/galleries", func(r chi.Router) {
 			// Gallery Routes
-			requireUser := mw.RequireUser{
-				User: userMw,
-			}
+
 			r.Use(requireUser.Invoke)
 			r.Get("/", galleriesC.Index)
 			r.Post("/", galleriesC.Create)
@@ -86,7 +89,16 @@ func main() {
 				r.Get("/edit", galleriesC.Edit)
 				r.Post("/update", galleriesC.Update)
 				r.Post("/delete", galleriesC.Delete)
+				r.Route("/images", func(r chi.Router) {
+					r.Post("/", galleriesC.ImageUpload)
+					r.Route("/{filename}", func(r chi.Router) {
+						r.Post("/delete", galleriesC.ImageDelete)
+					})
+				})
 			})
+		})
+		r.Route("/images/galleries/{galleryID}", func(r chi.Router) {
+			r.Handle("/*", http.StripPrefix("/images/galleries/", requireUser.ImageSafety(fs)))
 		})
 	})
 

@@ -1,36 +1,220 @@
 {{define "body"}}
-<div class="row justify-content-xl-center">
-	<div class="col-xl-6">
-		<div class="card">
-			<div class="card-header text-bg-dark">Edit your gallery</div>
-			<div class="card-body">{{template "editGalleryForm" .}}</div>
+<div class="row justify-content-xl-center ps-4 pe-4">
+	<div class="col-md-10">
+		<h1>Edit your gallery</h1>
+		<hr class="mb-3" />
+	</div>
+	<div class="col-md-12">{{template "editGalleryForm" .}}</div>
+	<div class="col-md-12">{{template "imageUploadForm" .}}</div>
+	<div class="col-md-12">{{template "imagesList" .}}</div>
+	<div class="row justify-content-xl-center">
+		<div class="col-md-2 text-center">
+			<!-- Button trigger modal -->
+			<button
+				type="button"
+				class="btn btn-danger mt-3"
+				data-bs-toggle="modal"
+				data-bs-target="#deleteModal"
+			>
+				Delete Gallery
+			</button>
 		</div>
 	</div>
 </div>
 
 {{end}} {{define "editGalleryForm"}}
-<form action="/galleries/{{.ID}}/update" method="POST">
-	<div class="form-floating mb-3">
-		<input
-			type="text"
-			class="form-control"
-			name="title"
-			id="title"
-			placeholder="Gallery Title"
-			value="{{.Title}}"
-		/>
-		<label for="title">What is the title of your gallery?</label>
+<form
+	action="/galleries/{{.ID}}/update"
+	method="POST"
+	class="form-group row justify-content-xl-center"
+>
+	<div class="row align-items-center justify-content-xl-center">
+		<div class="col-md-1">
+			<label for="title" class="col-form-label" style="font-size: x-large"
+				>Gallery Title</label
+			>
+		</div>
+		<div class="col-md-8">
+			<input
+				type="text"
+				name="title"
+				class="form-control"
+				id="title"
+				placeholder="What is the title of your gallery?"
+				value="{{.Title}}"
+			/>
+		</div>
+		<div class="col-md-1">
+			<button
+				type="submit"
+				class="btn btn-primary save-button"
+				style="width: 150px"
+			>
+				Save
+			</button>
+		</div>
 	</div>
-
-	<button type="submit" class="btn btn-primary">Edit</button>
-	<button type="button" class="btn btn-danger" onclick="deleteGallery()">
-		Delete
-	</button>
 </form>
+
 <form action="/galleries/{{.ID}}/delete" method="POST" name="deleteForm"></form>
+
+<!-- Gallery Delete Modal -->
+<div
+	class="modal fade"
+	id="deleteModal"
+	data-bs-backdrop="static"
+	data-bs-keyboard="false"
+	tabindex="-1"
+	aria-labelledby="deleteModalLabel"
+	aria-hidden="true"
+>
+	<div class="modal-dialog">
+		<div class="modal-content">
+			<div class="modal-header">
+				<h5 class="modal-title" id="deleteModalLabel">Delete '{{.Title}}'?</h5>
+				<button
+					type="button"
+					class="btn-close"
+					data-bs-dismiss="modal"
+					aria-label="Close"
+				></button>
+			</div>
+			<div class="modal-body">
+				Are you sure you wish to delete your gallery?
+			</div>
+			<div class="modal-footer">
+				<button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+					Cancel
+				</button>
+				<button type="button" class="btn btn-primary" onclick="deleteGallery()">
+					Delete
+				</button>
+			</div>
+		</div>
+	</div>
+</div>
+
+<!-- Upload Modal -->
+<div
+	class="modal fade"
+	id="uploadModal"
+	data-bs-backdrop="static"
+	data-bs-keyboard="false"
+	tabindex="-1"
+	aria-labelledby="uploadModalLabel"
+	aria-hidden="true"
+>
+	<div class="modal-dialog">
+		<div class="modal-content">
+			<div class="modal-header">
+				<h5 class="modal-title" id="uploadModalLabel">No Files Chosen</h5>
+				<button
+					type="button"
+					class="btn-close"
+					data-bs-dismiss="modal"
+					aria-label="Close"
+				></button>
+			</div>
+			<div class="modal-body">Please choose an image to upload.</div>
+			<div class="modal-footer">
+				<button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+					Ok
+				</button>
+			</div>
+		</div>
+	</div>
+</div>
+
 <script>
 	function deleteGallery() {
 		document.deleteForm.submit();
 	}
+
+	function uploadImages() {
+		if (document.getElementById("images").value != "") {
+			// In this case there is a file so we should upload it.
+			document.imageForm.submit();
+		} else {
+			var myModal = new bootstrap.Modal(document.getElementById("uploadModal"));
+			myModal.show();
+		}
+	}
 </script>
+{{end}} {{define "imageUploadForm"}}
+<!-- snippet for reference -->
+<form
+	action="/galleries/{{.ID}}/images"
+	method="POST"
+	enctype="multipart/form-data"
+	class="form-group row justify-content-xl-center"
+	name="imageForm"
+	id="imageForm"
+>
+	<div class="row align-items-top justify-content-xl-center mt-3">
+		<div class="col-md-1">
+			<label for="images" class="col-form-label" style="font-size: x-large"
+				>Add Images</label
+			>
+		</div>
+		<div class="col-md-8">
+			<input
+				class="form-control"
+				type="file"
+				id="images"
+				name="images"
+				accept=".jpg,.jpeg,.png"
+				multiple
+			/>
+			<p class="help-block">
+				Please only use .jpg, .jpeg, and .png file types.
+			</p>
+		</div>
+		<div class="col-md-1">
+			<button
+				type="button"
+				onclick="uploadImages()"
+				class="btn btn-primary"
+				style="width: 150px"
+			>
+				Upload
+			</button>
+		</div>
+	</div>
+</form>
+{{end}} {{define "imagesList"}}
+<div class="form-group row justify-content-xl-center">
+	<div
+		class="row align-text-bottom align-items-center justify-content-xl-center"
+	>
+		<div class="col-md-1">
+			<label for="images-list" class="col-form-label" style="font-size: x-large"
+				>Images</label
+			>
+		</div>
+		<div class="col-md-8">
+			<div class="row">
+				{{if .Images}} {{range .ImagesSplitN 6}}
+				<div class="col-sm-2">
+					{{range .}}
+					<a href="{{.Path}}" alt="{{.Filename}}" title="{{.Filename}}">
+						<img src="{{.Path}}" class="img-thumbnail" />
+					</a>
+					{{template "deleteImageForm" .}} {{end}}
+				</div>
+				{{end}} {{else}} There are no images in your gallery... {{end}}
+			</div>
+		</div>
+		<div class="col-md-1"></div>
+	</div>
+</div>
+{{end}} {{define "deleteImageForm"}}
+<form
+	action="/galleries/{{.GalleryID}}/images/{{.Filename}}/delete"
+	method="post"
+	class="row justify-content-xl-center"
+>
+	<div class="text-center">
+		<button type="submit" class="btn btn-primary mt-2">Delete</button>
+	</div>
+</form>
 {{end}}

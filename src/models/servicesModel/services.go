@@ -2,6 +2,7 @@ package servicesModel
 
 import (
 	"lenslocked/models/galleriesModel"
+	"lenslocked/models/imagesModel"
 	"lenslocked/models/usersModel"
 
 	"github.com/jinzhu/gorm"
@@ -17,6 +18,7 @@ func NewServices(connectionInfo string) (*Services, error) {
 	return &Services{
 		User:    usersModel.NewUserService(db),
 		Gallery: galleriesModel.NewGalleryService(db),
+		Image:   imagesModel.NewImageService(),
 		db:      db,
 	}, nil
 }
@@ -24,6 +26,7 @@ func NewServices(connectionInfo string) (*Services, error) {
 type Services struct {
 	Gallery galleriesModel.GalleryService
 	User    usersModel.UserService
+	Image   imagesModel.ImageService
 	db      *gorm.DB
 }
 

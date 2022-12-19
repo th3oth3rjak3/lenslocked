@@ -1,6 +1,7 @@
 package galleriesController
 
 import (
+	"errors"
 	"fmt"
 	"net/http"
 	"strconv"
@@ -8,9 +9,16 @@ import (
 	"lenslocked/context"
 	"lenslocked/models/errorsModel"
 	"lenslocked/models/galleriesModel"
+	"lenslocked/models/imagesModel"
 	"lenslocked/views"
 
 	"github.com/go-chi/chi/v5"
+)
+
+const (
+	// The bit shift is to convert to MB. In the case below, we have
+	// 1 << 20 to represent 1 MB.
+	MAX_MULTIPART_MEMORY = 1 << 20
 )
 
 // The Galleries controller object.
@@ -20,18 +28,20 @@ type GalleriesController struct {
 	EditView       *views.View
 	IndexView      *views.View
 	galleryService galleriesModel.GalleryService
+	imageService   imagesModel.ImageService
 }
 
 // Instantiates a new Galleries controller.
 // This will panic if templates are not parsed correctly.
 // Only used during initial startup.
-func NewGalleriesController(gs galleriesModel.GalleryService) *GalleriesController {
+func NewGalleriesController(gs galleriesModel.GalleryService, is imagesModel.ImageService) *GalleriesController {
 	return &GalleriesController{
 		NewView:        views.NewView("bootstrap", "galleries/new"),
 		ShowView:       views.NewView("bootstrap", "galleries/show"),
 		EditView:       views.NewView("bootstrap", "galleries/edit"),
 		IndexView:      views.NewView("bootstrap", "galleries/index"),
 		galleryService: gs,
+		imageService:   is,
 	}
 }
 
@@ -97,7 +107,8 @@ func (gc *GalleriesController) Show(w http.ResponseWriter, r *http.Request) {
 	}
 	user := context.User(r.Context())
 	if gallery.UserID != user.ID {
-		http.Error(w, "Gallery not found", http.StatusNotFound)
+		data.SetAlert(errorsModel.ErrGalleryNotFound, true)
+		gc.ShowView.Render(w, r, data)
 		return
 	}
 	data.Payload = gallery
@@ -191,6 +202,94 @@ func (gc *GalleriesController) Delete(w http.ResponseWriter, r *http.Request) {
 	http.Redirect(w, r, "/galleries", http.StatusFound)
 }
 
+// Used to process the updated gallery image uploads
+//
+// POST /galleries/:id/images
+func (gc *GalleriesController) ImageUpload(w http.ResponseWriter, r *http.Request) {
+	usr := context.User(r.Context())
+	if usr == nil {
+		http.Redirect(w, r, "/login", http.StatusFound)
+		return
+	}
+	var vd views.Data
+	gallery, err := gc.galleryById(w, r)
+	if err != nil {
+		vd.SetAlert(err, true)
+		gc.EditView.Render(w, r, vd)
+		return
+	}
+	if gallery.UserID != usr.ID {
+		vd.SetAlert(errorsModel.ErrGalleryNotFound, true)
+		gc.EditView.Render(w, r, vd)
+		return
+	}
+	vd.Payload = gallery
+	err = r.ParseMultipartForm(MAX_MULTIPART_MEMORY)
+	if err != nil {
+		vd.SetAlert(err, true)
+		gc.EditView.Render(w, r, vd)
+		return
+	}
+
+	files := r.MultipartForm.File["images"]
+	for _, f := range files {
+		file, err := f.Open()
+		if err != nil {
+			vd.SetAlert(err, true)
+			gc.EditView.Render(w, r, vd)
+			return
+		}
+		defer file.Close()
+		err = gc.imageService.Create(gallery.ID, file, f.Filename)
+		if err != nil {
+			vd.SetAlert(err, true)
+			gc.EditView.Render(w, r, vd)
+			return
+		}
+	}
+	rdrPath := fmt.Sprintf("/galleries/%d/edit", gallery.ID)
+	http.Redirect(w, r, rdrPath, http.StatusFound)
+}
+
+// Used to delete an image from a gallery
+//
+// POST /galleries/:id/images
+func (gc *GalleriesController) ImageDelete(w http.ResponseWriter, r *http.Request) {
+	filename := chi.URLParam(r, "filename")
+	galleryIDStr := chi.URLParam(r, "galleryId")
+	galleryID, err := strconv.Atoi(galleryIDStr)
+	if err != nil {
+		http.Error(w, "404 page not found", http.StatusNotFound)
+		return
+	}
+
+	usr := context.User(r.Context())
+	if usr == nil {
+		http.Redirect(w, r, "/login", http.StatusFound)
+		return
+	}
+	var vd views.Data
+	gallery, err := gc.galleryById(w, r)
+	if err != nil {
+		vd.SetAlert(err, true)
+		gc.EditView.Render(w, r, vd)
+		return
+	}
+	if gallery.UserID != usr.ID {
+		vd.SetAlert(errorsModel.ErrGalleryNotFound, true)
+		gc.EditView.Render(w, r, vd)
+		return
+	}
+	err = gc.imageService.Delete(uint(galleryID), filename)
+	if err != nil {
+		vd.SetAlert(err, true)
+		gc.EditView.Render(w, r, vd)
+		return
+	}
+	rdrPath := fmt.Sprintf("/galleries/%d/edit", gallery.ID)
+	http.Redirect(w, r, rdrPath, http.StatusFound)
+}
+
 // galleryById gets a gallery by the id passed in the URL params if one exists.
 // It then returns that gallery and an error if one occurs. This helper function
 // is used for the Show and Edit methods.
@@ -209,5 +308,12 @@ func (gc *GalleriesController) galleryById(w http.ResponseWriter, r *http.Reques
 		gc.ShowView.Render(w, r, data)
 		return nil, err
 	}
+	images, err := gc.imageService.ByGalleryID(gallery.ID)
+	if err != nil {
+		data.SetAlert(errors.New("an error occurred during image processing"), true)
+		gc.ShowView.Render(w, r, data)
+		return nil, err
+	}
+	gallery.Images = images
 	return gallery, nil
 }
