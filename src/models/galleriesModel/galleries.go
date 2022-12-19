@@ -1,14 +1,30 @@
 package galleriesModel
 
 import (
+	"lenslocked/models/imagesModel"
+
 	"github.com/jinzhu/gorm"
 )
 
 // A Gallery contains image resources that are viewed by our visitors.
 type Gallery struct {
 	gorm.Model
-	UserID uint   `gorm:"not null;index"`
-	Title  string `gorm:"not null"`
+	UserID uint                `gorm:"not null;index"`
+	Title  string              `gorm:"not null"`
+	Images []imagesModel.Image `gorm:"-"`
+}
+
+func (g *Gallery) ImagesSplitN(n int) [][]imagesModel.Image {
+	ret := make([][]imagesModel.Image, n)
+	for i := 0; i < n; i++ {
+		ret[i] = make([]imagesModel.Image, 0)
+	}
+	for i, img := range g.Images {
+		bucket := i % n
+		ret[bucket] = append(ret[bucket], img)
+	}
+
+	return ret
 }
 
 // GalleryDB is used to interact with the galleries database.

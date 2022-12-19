@@ -1,6 +1,7 @@
 package galleriesController
 
 import (
+	"errors"
 	"fmt"
 	"net/http"
 	"strconv"
@@ -106,7 +107,8 @@ func (gc *GalleriesController) Show(w http.ResponseWriter, r *http.Request) {
 	}
 	user := context.User(r.Context())
 	if gallery.UserID != user.ID {
-		http.Error(w, "Gallery not found", http.StatusNotFound)
+		data.SetAlert(errorsModel.ErrGalleryNotFound, true)
+		gc.ShowView.Render(w, r, data)
 		return
 	}
 	data.Payload = gallery
@@ -203,7 +205,7 @@ func (gc *GalleriesController) Delete(w http.ResponseWriter, r *http.Request) {
 // Used to process the updated gallery image uploads
 //
 // POST /galleries/:id/images
-func (gc *GalleriesController) Upload(w http.ResponseWriter, r *http.Request) {
+func (gc *GalleriesController) ImageUpload(w http.ResponseWriter, r *http.Request) {
 	usr := context.User(r.Context())
 	if usr == nil {
 		http.Redirect(w, r, "/login", http.StatusFound)
@@ -217,11 +219,11 @@ func (gc *GalleriesController) Upload(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if gallery.UserID != usr.ID {
-		http.Error(w, "Gallery not found", http.StatusNotFound)
+		vd.SetAlert(errorsModel.ErrGalleryNotFound, true)
+		gc.EditView.Render(w, r, vd)
 		return
 	}
 	vd.Payload = gallery
-	// TODO: parse a multipart form with multiple images.
 	err = r.ParseMultipartForm(MAX_MULTIPART_MEMORY)
 	if err != nil {
 		vd.SetAlert(err, true)
@@ -245,7 +247,47 @@ func (gc *GalleriesController) Upload(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 	}
-	fmt.Fprintln(w, "Files successfully uploaded.")
+	rdrPath := fmt.Sprintf("/galleries/%d/edit", gallery.ID)
+	http.Redirect(w, r, rdrPath, http.StatusFound)
+}
+
+// Used to delete an image from a gallery
+//
+// POST /galleries/:id/images
+func (gc *GalleriesController) ImageDelete(w http.ResponseWriter, r *http.Request) {
+	filename := chi.URLParam(r, "filename")
+	galleryIDStr := chi.URLParam(r, "galleryId")
+	galleryID, err := strconv.Atoi(galleryIDStr)
+	if err != nil {
+		http.Error(w, "404 page not found", http.StatusNotFound)
+		return
+	}
+
+	usr := context.User(r.Context())
+	if usr == nil {
+		http.Redirect(w, r, "/login", http.StatusFound)
+		return
+	}
+	var vd views.Data
+	gallery, err := gc.galleryById(w, r)
+	if err != nil {
+		vd.SetAlert(err, true)
+		gc.EditView.Render(w, r, vd)
+		return
+	}
+	if gallery.UserID != usr.ID {
+		vd.SetAlert(errorsModel.ErrGalleryNotFound, true)
+		gc.EditView.Render(w, r, vd)
+		return
+	}
+	err = gc.imageService.Delete(uint(galleryID), filename)
+	if err != nil {
+		vd.SetAlert(err, true)
+		gc.EditView.Render(w, r, vd)
+		return
+	}
+	rdrPath := fmt.Sprintf("/galleries/%d/edit", gallery.ID)
+	http.Redirect(w, r, rdrPath, http.StatusFound)
 }
 
 // galleryById gets a gallery by the id passed in the URL params if one exists.
@@ -266,5 +308,12 @@ func (gc *GalleriesController) galleryById(w http.ResponseWriter, r *http.Reques
 		gc.ShowView.Render(w, r, data)
 		return nil, err
 	}
+	images, err := gc.imageService.ByGalleryID(gallery.ID)
+	if err != nil {
+		data.SetAlert(errors.New("an error occurred during image processing"), true)
+		gc.ShowView.Render(w, r, data)
+		return nil, err
+	}
+	gallery.Images = images
 	return gallery, nil
 }
