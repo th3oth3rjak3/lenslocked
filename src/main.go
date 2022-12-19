@@ -44,7 +44,7 @@ func main() {
 	// Create controllers and views
 	staticC := staticController.NewStatic()
 	usersC := usersController.NewUsersController(services.User)
-	galleriesC := galleriesController.NewGalleriesController(services.Gallery)
+	galleriesC := galleriesController.NewGalleriesController(services.Gallery, services.Image)
 
 	// Create a router
 	r := chi.NewRouter()
@@ -86,6 +86,7 @@ func main() {
 				r.Get("/edit", galleriesC.Edit)
 				r.Post("/update", galleriesC.Update)
 				r.Post("/delete", galleriesC.Delete)
+				r.Post("/images", galleriesC.Upload)
 			})
 		})
 	})
