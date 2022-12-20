@@ -15,6 +15,7 @@ func NewServices(connectionInfo string) (*Services, error) {
 		return nil, err
 	}
 	db.LogMode(true)
+
 	return &Services{
 		User:    usersModel.NewUserService(db),
 		Gallery: galleriesModel.NewGalleryService(db),

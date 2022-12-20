@@ -43,14 +43,12 @@ type Data struct {
 // setAlert takes any error, both public and private, and sets an alert
 // in the Data object based on the error. If logging the alert is desired,
 // set logErr to true.
-func (d *Data) SetAlert(err error, logErr bool) {
-	if logErr {
-		log.Println(err)
-	}
+func (d *Data) SetAlert(err error) {
 	d.Alert = &Alert{Level: AlertLevelError}
 	if pErr, ok := err.(PublicError); ok {
 		d.Alert.Message = pErr.Public()
 	} else {
+		log.Printf("Unexpected Error Occurred: %s\n", err)
 		d.Alert.Message = AlertMessageGeneric
 	}
 }

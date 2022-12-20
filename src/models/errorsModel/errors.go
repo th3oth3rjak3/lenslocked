@@ -1,6 +1,7 @@
 package errorsModel
 
 import (
+	"log"
 	"strings"
 
 	"golang.org/x/text/cases"
@@ -82,4 +83,12 @@ type privateError string
 
 func (e privateError) Error() string {
 	return string(e)
+}
+
+func Must(err error, failureMessage string) error {
+	if err != nil {
+		log.Fatalf(failureMessage+": %s", err)
+		return err
+	}
+	return nil
 }

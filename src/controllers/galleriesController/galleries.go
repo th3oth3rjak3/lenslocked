@@ -3,6 +3,7 @@ package galleriesController
 import (
 	"errors"
 	"fmt"
+	"log"
 	"net/http"
 	"strconv"
 
@@ -64,7 +65,7 @@ func (gc *GalleriesController) Create(w http.ResponseWriter, r *http.Request) {
 	formData := &GalleryForm{}
 	var vd views.Data
 	if err := formData.Bind(r); err != nil {
-		vd.SetAlert(err, true)
+		vd.SetAlert(err)
 		gc.NewView.Render(w, r, vd)
 		return
 	}
@@ -73,7 +74,7 @@ func (gc *GalleriesController) Create(w http.ResponseWriter, r *http.Request) {
 		UserID: usr.ID,
 	}
 	if err := gc.galleryService.Create(gallery); err != nil {
-		vd.SetAlert(err, true)
+		vd.SetAlert(err)
 		gc.NewView.Render(w, r, vd)
 		return
 	}
@@ -88,6 +89,7 @@ func (gc *GalleriesController) Index(w http.ResponseWriter, r *http.Request) {
 	user := context.User(r.Context())
 	galleries, err := gc.galleryService.ByUserID(user.ID)
 	if err != nil {
+		log.Println(err)
 		http.Error(w, "Something went wrong.", http.StatusInternalServerError)
 		return
 	}
@@ -103,11 +105,13 @@ func (gc *GalleriesController) Show(w http.ResponseWriter, r *http.Request) {
 	data := views.Data{}
 	gallery, err := gc.galleryById(w, r)
 	if err != nil {
+		data.SetAlert(errorsModel.ErrGalleryNotFound)
+		gc.ShowView.Render(w, r, data)
 		return
 	}
 	user := context.User(r.Context())
 	if gallery.UserID != user.ID {
-		data.SetAlert(errorsModel.ErrGalleryNotFound, true)
+		data.SetAlert(errorsModel.ErrGalleryNotFound)
 		gc.ShowView.Render(w, r, data)
 		return
 	}
@@ -122,6 +126,8 @@ func (gc *GalleriesController) Edit(w http.ResponseWriter, r *http.Request) {
 	data := views.Data{}
 	gallery, err := gc.galleryById(w, r)
 	if err != nil {
+		log.Println(err)
+		http.Error(w, "Gallery not found", http.StatusNotFound)
 		return
 	}
 	user := context.User(r.Context())
@@ -145,7 +151,7 @@ func (gc *GalleriesController) Update(w http.ResponseWriter, r *http.Request) {
 	var vd views.Data
 	gallery, err := gc.galleryById(w, r)
 	if err != nil {
-		vd.SetAlert(err, true)
+		vd.SetAlert(err)
 		gc.EditView.Render(w, r, vd)
 		return
 	}
@@ -156,13 +162,13 @@ func (gc *GalleriesController) Update(w http.ResponseWriter, r *http.Request) {
 	vd.Payload = gallery
 	formData := &GalleryForm{}
 	if err := formData.Bind(r); err != nil {
-		vd.SetAlert(err, true)
+		vd.SetAlert(err)
 		gc.EditView.Render(w, r, vd)
 		return
 	}
 	gallery.Title = formData.Title
 	if err := gc.galleryService.Update(gallery); err != nil {
-		vd.SetAlert(err, true)
+		vd.SetAlert(err)
 		gc.EditView.Render(w, r, vd)
 		return
 	}
@@ -185,7 +191,7 @@ func (gc *GalleriesController) Delete(w http.ResponseWriter, r *http.Request) {
 	var vd views.Data
 	gallery, err := gc.galleryById(w, r)
 	if err != nil {
-		vd.SetAlert(err, true)
+		vd.SetAlert(err)
 		gc.EditView.Render(w, r, vd)
 		return
 	}
@@ -195,7 +201,7 @@ func (gc *GalleriesController) Delete(w http.ResponseWriter, r *http.Request) {
 	}
 	vd.Payload = gallery
 	if err := gc.galleryService.Delete(gallery.ID); err != nil {
-		vd.SetAlert(err, true)
+		vd.SetAlert(err)
 		gc.EditView.Render(w, r, vd)
 		return
 	}
@@ -214,19 +220,19 @@ func (gc *GalleriesController) ImageUpload(w http.ResponseWriter, r *http.Reques
 	var vd views.Data
 	gallery, err := gc.galleryById(w, r)
 	if err != nil {
-		vd.SetAlert(err, true)
+		vd.SetAlert(err)
 		gc.EditView.Render(w, r, vd)
 		return
 	}
 	if gallery.UserID != usr.ID {
-		vd.SetAlert(errorsModel.ErrGalleryNotFound, true)
+		vd.SetAlert(errorsModel.ErrGalleryNotFound)
 		gc.EditView.Render(w, r, vd)
 		return
 	}
 	vd.Payload = gallery
 	err = r.ParseMultipartForm(MAX_MULTIPART_MEMORY)
 	if err != nil {
-		vd.SetAlert(err, true)
+		vd.SetAlert(err)
 		gc.EditView.Render(w, r, vd)
 		return
 	}
@@ -235,14 +241,14 @@ func (gc *GalleriesController) ImageUpload(w http.ResponseWriter, r *http.Reques
 	for _, f := range files {
 		file, err := f.Open()
 		if err != nil {
-			vd.SetAlert(err, true)
+			vd.SetAlert(err)
 			gc.EditView.Render(w, r, vd)
 			return
 		}
 		defer file.Close()
 		err = gc.imageService.Create(gallery.ID, file, f.Filename)
 		if err != nil {
-			vd.SetAlert(err, true)
+			vd.SetAlert(err)
 			gc.EditView.Render(w, r, vd)
 			return
 		}
@@ -271,18 +277,18 @@ func (gc *GalleriesController) ImageDelete(w http.ResponseWriter, r *http.Reques
 	var vd views.Data
 	gallery, err := gc.galleryById(w, r)
 	if err != nil {
-		vd.SetAlert(err, true)
+		vd.SetAlert(err)
 		gc.EditView.Render(w, r, vd)
 		return
 	}
 	if gallery.UserID != usr.ID {
-		vd.SetAlert(errorsModel.ErrGalleryNotFound, true)
+		vd.SetAlert(errorsModel.ErrGalleryNotFound)
 		gc.EditView.Render(w, r, vd)
 		return
 	}
 	err = gc.imageService.Delete(uint(galleryID), filename)
 	if err != nil {
-		vd.SetAlert(err, true)
+		vd.SetAlert(err)
 		gc.EditView.Render(w, r, vd)
 		return
 	}
@@ -298,19 +304,19 @@ func (gc *GalleriesController) galleryById(w http.ResponseWriter, r *http.Reques
 	data := views.Data{}
 	id, err := strconv.ParseUint(idStr, 10, 64)
 	if err != nil {
-		data.SetAlert(errorsModel.ErrGalleryNotFound, true)
+		data.SetAlert(errorsModel.ErrGalleryNotFound)
 		gc.ShowView.Render(w, r, data)
 		return nil, err
 	}
 	gallery, err := gc.galleryService.ByID(uint(id))
 	if err != nil {
-		data.SetAlert(errorsModel.ErrGalleryNotFound, true)
+		data.SetAlert(errorsModel.ErrGalleryNotFound)
 		gc.ShowView.Render(w, r, data)
 		return nil, err
 	}
 	images, err := gc.imageService.ByGalleryID(gallery.ID)
 	if err != nil {
-		data.SetAlert(errors.New("an error occurred during image processing"), true)
+		data.SetAlert(errors.New("an error occurred during image processing"))
 		gc.ShowView.Render(w, r, data)
 		return nil, err
 	}

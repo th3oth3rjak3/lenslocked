@@ -40,7 +40,7 @@ func (u *UsersController) Create(w http.ResponseWriter, r *http.Request) {
 	formData := &SignupForm{}
 	var vd views.Data
 	if err := formData.Bind(r); err != nil {
-		vd.SetAlert(err, true)
+		vd.SetAlert(err)
 		u.SignupView.Render(w, r, vd)
 		return
 	}
@@ -50,7 +50,7 @@ func (u *UsersController) Create(w http.ResponseWriter, r *http.Request) {
 		Password: formData.Password,
 	}
 	if err := u.userService.Create(user); err != nil {
-		vd.SetAlert(err, true)
+		vd.SetAlert(err)
 		u.SignupView.Render(w, r, vd)
 		return
 	}
@@ -73,20 +73,20 @@ func (u *UsersController) Login(w http.ResponseWriter, r *http.Request) {
 	var vd views.Data
 	formData := &LoginForm{}
 	if err := formData.Bind(r); err != nil {
-		vd.SetAlert(err, true)
+		vd.SetAlert(err)
 		u.LoginView.Render(w, r, vd)
 		return
 	}
 	usr, err := u.userService.Authenticate(formData.Email, formData.Password)
 	if err != nil {
-		vd.SetAlert(err, true)
+		vd.SetAlert(err)
 		u.LoginView.Render(w, r, vd)
 		return
 	}
 
 	err = u.signIn(w, usr)
 	if err != nil {
-		vd.SetAlert(err, true)
+		vd.SetAlert(err)
 		u.LoginView.Render(w, r, vd)
 		return
 	}
