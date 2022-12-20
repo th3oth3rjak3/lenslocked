@@ -27,8 +27,8 @@ jobs:
 
       - name: Create additional database
         run: |
-          sudo -u postgres createdb TestDatabase --owner=test
-          PGPASSWORD=password psql --username=test --host=localhost --list TestDatabase
+          sudo -u postgres createdb lenslocked_dev --owner=test
+          PGPASSWORD=password psql --username=test --host=localhost --list lenslocked_dev
 
       - name: Set up Go
         uses: actions/setup-go@v3
