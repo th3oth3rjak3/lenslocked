@@ -19,18 +19,6 @@ func NewServices(cfgs ...ServicesConfig) (*Services, error) {
 		}
 	}
 	return &s, nil
-	// db, err := gorm.Open(dialect, connectionInfo)
-	// if err != nil {
-	// 	return nil, err
-	// }
-	// db.LogMode(true)
-
-	// return &Services{
-	// 	User:    usersModel.NewUserService(db),
-	// 	Gallery: galleriesModel.NewGalleryService(db),
-	// 	Image:   imagesModel.NewImageService(),
-	// 	db:      db,
-	// }, nil
 }
 
 func WithLogMode(logMode bool) ServicesConfig {
@@ -77,11 +65,6 @@ type Services struct {
 	User    usersModel.UserService
 	Image   imagesModel.ImageService
 	db      *gorm.DB
-}
-
-// Turns database log mode on or off. This is used primarily for testing purposes.
-func (s *Services) LogMode(dbLogModeEnabled bool) {
-	s.db.LogMode(dbLogModeEnabled)
 }
 
 // Closes the database connection. It can be deferred if desired.

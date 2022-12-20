@@ -33,9 +33,9 @@ type AppController struct {
 	Galleries *galleriesController.GalleriesController
 }
 
-func NewApp() *App {
-	cfg := config.DefaultConfig()
-	dbCfg := config.DefaultPostGresConfig()
+func NewApp(configRequired bool) *App {
+	cfg := config.LoadConfig(configRequired)
+	dbCfg := config.DefaultPostgresConfig()
 
 	// Create Services
 	services, err := servicesModel.NewServices(
@@ -136,6 +136,7 @@ func (app *App) defaultRoute(ar *routers.AppRouter) {
 	app.AddRoute(ar, app.contactRoutes)
 	app.AddRoute(ar, app.signupRoutes)
 	app.AddRoute(ar, app.loginRoutes)
+	app.AddRoute(ar, app.logoutRoutes)
 	app.AddRoute(ar, app.galleriesRoutes)
 	app.AddRoute(ar, app.imagesRoutes)
 	app.AddRoute(ar, app.assetsRoutes)
@@ -159,6 +160,12 @@ func (app *App) loginRoutes(ar *routers.AppRouter) {
 	login := r.Group("/login")
 	login.GET("", echo.WrapHandler(app.Controllers.Users.LoginView))
 	login.POST("", echo.WrapHandler(http.HandlerFunc(app.Controllers.Users.Login)))
+}
+
+func (app *App) logoutRoutes(ar *routers.AppRouter) {
+	r := ar.Router
+	logout := r.Group("/logout")
+	logout.POST("", echo.WrapHandler(http.HandlerFunc(app.Controllers.Users.Logout)))
 }
 
 func (app *App) galleriesRoutes(ar *routers.AppRouter) {

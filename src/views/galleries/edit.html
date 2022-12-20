@@ -221,7 +221,7 @@
 </div>
 {{end}} {{define "deleteImageForm"}}
 <form
-	action="/galleries/{{.GalleryID}}/images/{{.Filename | urlquery}}/delete"
+	action="/galleries/{{.GalleryID}}/images/{{.Filename}}/delete"
 	method="post"
 	class="row justify-content-xl-center"
 >

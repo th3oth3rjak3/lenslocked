@@ -19,6 +19,13 @@ func (s *SignupForm) Bind(r *http.Request) error {
 	return nil
 }
 
+func (s *SignupForm) BindURLParams(r *http.Request) error {
+	s.Email = r.FormValue("email")
+	s.Password = r.FormValue("password")
+	s.Name = r.FormValue("name")
+	return nil
+}
+
 // Represents the form data that is required when logging in.
 type LoginForm struct {
 	Email    string

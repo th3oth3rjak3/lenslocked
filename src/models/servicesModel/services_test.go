@@ -12,7 +12,7 @@ import (
 )
 
 func mockServices(causeDbError bool) (*Services, error) {
-	dbCfg := config.TestPostGresConfig()
+	dbCfg := config.TestPostgresConfig()
 	psqlInfo := dbCfg.ConnectionInfo()
 	if causeDbError {
 		psqlInfo = psqlInfo + "/////"
@@ -22,15 +22,12 @@ func mockServices(causeDbError bool) (*Services, error) {
 		WithUser(config.DefaultHashKeyConfig()),
 		WithGallery(),
 		WithImages(),
+		WithLogMode(false),
 	)
 	if err != nil {
 		return nil, err
 	}
-	// Log mode set to false...
-	// TODO: Fix this so that we can set log mode on/off at services level
-	services.LogMode(false)
 
-	// TODO: fix this so that it can be done at the services level
 	// Clear the users table between tests.
 	services.DestructiveReset()
 	return services, nil

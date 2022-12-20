@@ -2,7 +2,9 @@ package usersController
 
 import (
 	"net/http"
+	"time"
 
+	"lenslocked/context"
 	"lenslocked/models/usersModel"
 	"lenslocked/rand"
 	"lenslocked/views"
@@ -30,7 +32,9 @@ func NewUsersController(us usersModel.UserService) *UsersController {
 //
 // GET /signup
 func (u *UsersController) Signup(w http.ResponseWriter, r *http.Request) {
-	u.SignupView.Render(w, r, nil)
+	var form SignupForm
+	form.BindURLParams(r)
+	u.SignupView.Render(w, r, &form)
 }
 
 // Used to process the signup request for a new user.
@@ -39,6 +43,7 @@ func (u *UsersController) Signup(w http.ResponseWriter, r *http.Request) {
 func (u *UsersController) Create(w http.ResponseWriter, r *http.Request) {
 	formData := &SignupForm{}
 	var vd views.Data
+	vd.Payload = &formData
 	if err := formData.Bind(r); err != nil {
 		vd.SetAlert(err)
 		u.SignupView.Render(w, r, vd)
@@ -56,13 +61,16 @@ func (u *UsersController) Create(w http.ResponseWriter, r *http.Request) {
 	}
 	err := u.signIn(w, user)
 	if err != nil {
-		// In this case the user was created, but couldn't login for some weird reason.
-		// We're going to handle this by letting the user attempt to login after
-		// a redirect to the login page. This should be an edge case if it ever happens.
-		http.Redirect(w, r, "/login", http.StatusFound)
+		vd.SetAlert(err)
+		u.LoginView.Render(w, r, vd)
 		return
 	}
-	http.Redirect(w, r, "/galleries", http.StatusFound)
+
+	alert := views.Alert{
+		Level:   views.AlertLevelSuccess,
+		Message: "Welcome to LensLocked.com!",
+	}
+	views.RedirectAlert(w, r, "/galleries", http.StatusFound, alert)
 }
 
 // Login is used to verify the provided email address and password and log
@@ -117,4 +125,26 @@ func (u *UsersController) signIn(w http.ResponseWriter, usr *usersModel.User) er
 	}
 	http.SetCookie(w, &cookie)
 	return nil
+}
+
+// Logout is used to delete a user's session cookie, remember token, and then will update
+// the user resource with a new remember token.
+//
+// POST /logout
+func (u *UsersController) Logout(w http.ResponseWriter, r *http.Request) {
+	exp := time.Now().Add(time.Hour * -24)
+	cookie := http.Cookie{
+		Name:     "remember_token",
+		Value:    "",
+		Expires:  exp,
+		HttpOnly: true,
+		Secure:   true,
+		SameSite: http.SameSiteStrictMode,
+	}
+	http.SetCookie(w, &cookie)
+	user := context.User(r.Context())
+	token, _ := rand.RememberToken()
+	user.Remember = token
+	u.userService.Update(user)
+	http.Redirect(w, r, "/", http.StatusFound)
 }
