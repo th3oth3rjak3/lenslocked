@@ -29,7 +29,7 @@ func DefaultPostgresConfig() PostgresConfig {
 	return PostgresConfig{
 		Host:     "localhost",
 		Port:     5432,
-		User:     "Jake",
+		User:     "dev",
 		Password: "",
 		Name:     "lenslocked_dev",
 	}
@@ -42,14 +42,15 @@ func TestPostgresConfig() PostgresConfig {
 }
 
 func DefaultHashKeyConfig() string {
-	return "energistically matrix cloud-centric experiences"
+	return "default-hmac-key"
 }
 
 type AppConfig struct {
-	Port     int            `json:"port"`
-	Env      string         `json:"env"`
-	HmacKey  string         `json:"hmac_key"`
-	Database PostgresConfig `json:"database"`
+	Port         int            `json:"port"`
+	Env          string         `json:"env"`
+	HmacKey      string         `json:"hmac_key"`
+	Database     PostgresConfig `json:"database"`
+	TestDatabase PostgresConfig `json:"test_database"`
 }
 
 func DefaultConfig() AppConfig {
@@ -69,8 +70,8 @@ func (ac AppConfig) IsDev() bool {
 	return !ac.IsProd()
 }
 
-func LoadConfig(configRequired bool) AppConfig {
-	file, err := os.Open("config.json")
+func LoadConfig(configRequired bool, path string) AppConfig {
+	file, err := os.Open(path)
 	if err != nil && configRequired {
 		panic(err)
 	}

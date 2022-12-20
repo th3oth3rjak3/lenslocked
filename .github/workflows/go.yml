@@ -27,8 +27,8 @@ jobs:
 
       - name: Create additional database
         run: |
-          sudo -u postgres createdb TestDatabase --owner=test
-          PGPASSWORD=password psql --username=test --host=localhost --list TestDatabase
+          sudo -u postgres createdb lenslocked_test --owner=test
+          PGPASSWORD=password psql --username=test --host=localhost --list lenslocked_test
 
       - name: Set up Go
         uses: actions/setup-go@v3
@@ -42,9 +42,4 @@ jobs:
         run: cd ./src && pwd && go build -v .
 
       - name: Test
-        env:
-          DB_CONNECTION_STRING_TEST: "host=localhost user=test password=password dbname=TestDatabase"
-          DB_CONNECTION_STRING_ERROR: "host=localhost port=5432 user=test password=passwordfail dbname=TestDatabase"
-          GITHUB_ACTION_STATUS_INDICATOR: "true"
-          HASH_KEY: "some super secret hash key"
         run: cd ./src && pwd && go test -cover ./...

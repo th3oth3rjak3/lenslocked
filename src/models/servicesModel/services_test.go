@@ -12,7 +12,7 @@ import (
 )
 
 func mockServices(causeDbError bool) (*Services, error) {
-	dbCfg := config.TestPostgresConfig()
+	dbCfg := config.LoadConfig(true, "../../config.json").TestDatabase
 	psqlInfo := dbCfg.ConnectionInfo()
 	if causeDbError {
 		psqlInfo = psqlInfo + "/////"

@@ -34,7 +34,7 @@ type AppController struct {
 }
 
 func NewApp(configRequired bool) *App {
-	cfg := config.LoadConfig(configRequired)
+	cfg := config.LoadConfig(configRequired, "config.json")
 	dbCfg := config.DefaultPostgresConfig()
 
 	// Create Services
