@@ -1,10 +1,11 @@
 package appController
 
 import (
+	"fmt"
 	"log"
 	"net/http"
-	"os"
 
+	"lenslocked/config"
 	"lenslocked/controllers/galleriesController"
 	"lenslocked/controllers/staticController"
 	"lenslocked/controllers/usersController"
@@ -13,12 +14,12 @@ import (
 	"lenslocked/models/servicesModel"
 	"lenslocked/routers"
 
-	"github.com/go-chi/chi/v5"
-	"github.com/go-chi/chi/v5/middleware"
-	"github.com/joho/godotenv"
+	"github.com/labstack/echo/v4"
+	"github.com/labstack/echo/v4/middleware"
 )
 
 type App struct {
+	Config      config.AppConfig
 	Controllers *AppController
 	Services    *servicesModel.Services
 	AppRouter   *routers.AppRouter
@@ -33,11 +34,17 @@ type AppController struct {
 }
 
 func NewApp() *App {
-	// Load configuration
-	errorsModel.Must(godotenv.Load(".env"), "Could not load the environment configuration.")
+	cfg := config.DefaultConfig()
+	dbCfg := config.DefaultPostGresConfig()
 
 	// Create Services
-	services, err := servicesModel.NewServices(os.Getenv("DB_CONNECTION_STRING"))
+	services, err := servicesModel.NewServices(
+		servicesModel.WithGorm(dbCfg.Dialect(), dbCfg.ConnectionInfo()),
+		servicesModel.WithUser(config.DefaultHashKeyConfig()),
+		servicesModel.WithGallery(),
+		servicesModel.WithImages(),
+		servicesModel.WithLogMode(cfg.IsDev()),
+	)
 	errorsModel.Must(err, "Could not initialize services.")
 
 	// Run migrations
@@ -48,6 +55,7 @@ func NewApp() *App {
 
 	appC := NewAppController(services)
 	app := &App{
+		Config:      cfg,
 		Services:    services,
 		Controllers: appC,
 		ImageServer: http.FileServer(http.Dir("./images/galleries/")),
@@ -79,7 +87,7 @@ func (app *App) NewAppRouter() *routers.AppRouter {
 	}
 
 	appRouter := routers.AppRouter{
-		Router: chi.NewRouter(),
+		Router: echo.New(),
 		Middleware: routers.AppMiddleware{
 			UserMW:      &userMw,
 			RequireUser: &requireUser,
@@ -94,19 +102,26 @@ func (app *App) AddRoute(router *routers.AppRouter, fn routers.RouteFunction) {
 
 func (app *App) Run() {
 	defer app.Services.Close()
-	addr := "localhost:3000"
+	var addr string
+	if app.Config.IsProd() {
+		addr = fmt.Sprintf(":%d", app.Config.Port)
+	} else {
+		addr = fmt.Sprintf("localhost:%d", app.Config.Port)
+	}
 	log.Println("Listening on:", addr)
 	log.Fatal(http.ListenAndServe(addr, app.AppRouter.Router))
 }
 
 func (app *App) appMiddleware(ar *routers.AppRouter) {
-	ar.Router = chi.NewRouter()
 	r := ar.Router
-	r.Use(middleware.RequestID)
-	r.Use(middleware.RealIP)
-	r.Use(middleware.Logger)
-	r.Use(middleware.Recoverer)
-	r.Use(ar.Middleware.UserMW.Invoke)
+	r.Use(middleware.RequestID())
+	r.Use(middleware.Logger())
+	r.Use(middleware.Recover())
+	r.Use(echo.WrapMiddleware(ar.Middleware.UserMW.Invoke))
+	r.Pre(middleware.RemoveTrailingSlash())
+	r.Use(middleware.CSRFWithConfig(middleware.CSRFConfig{
+		TokenLookup: "form:csrf",
+	}))
 }
 
 func (app *App) AddRoutes(ar *routers.AppRouter) {
@@ -116,77 +131,57 @@ func (app *App) AddRoutes(ar *routers.AppRouter) {
 
 func (app *App) defaultRoute(ar *routers.AppRouter) {
 	r := ar.Router
-	r.Route("/", func(r chi.Router) {
-		r.Get("/", app.Controllers.Static.Home.ServeHTTP)
-		app.AddRoute(ar, app.contactRoutes)
-		app.AddRoute(ar, app.signupRoutes)
-		app.AddRoute(ar, app.loginRoutes)
-		app.AddRoute(ar, app.galleriesRoutes)
-		app.AddRoute(ar, app.imagesRoutes)
-		app.AddRoute(ar, app.assetsRoutes)
-	})
+	base := r.Group("/")
+	base.GET("", echo.WrapHandler(app.Controllers.Static.Home))
+	app.AddRoute(ar, app.contactRoutes)
+	app.AddRoute(ar, app.signupRoutes)
+	app.AddRoute(ar, app.loginRoutes)
+	app.AddRoute(ar, app.galleriesRoutes)
+	app.AddRoute(ar, app.imagesRoutes)
+	app.AddRoute(ar, app.assetsRoutes)
 }
 
 func (app *App) contactRoutes(ar *routers.AppRouter) {
 	r := ar.Router
-	r.Route("/contact", func(r chi.Router) {
-		r.Get("/", app.Controllers.Static.Contact.ServeHTTP)
-	})
+	contact := r.Group("/contact")
+	contact.GET("", echo.WrapHandler(app.Controllers.Static.Contact))
 }
 
 func (app *App) signupRoutes(ar *routers.AppRouter) {
 	r := ar.Router
-	r.Route("/signup", func(r chi.Router) {
-		r.Get("/", app.Controllers.Users.Signup)
-		r.Post("/", app.Controllers.Users.Create)
-	})
+	signup := r.Group("/signup")
+	signup.GET("", echo.WrapHandler(http.HandlerFunc(app.Controllers.Users.Signup)))
+	signup.POST("", echo.WrapHandler(http.HandlerFunc(app.Controllers.Users.Create)))
 }
 
 func (app *App) loginRoutes(ar *routers.AppRouter) {
 	r := ar.Router
-	r.Route("/login", func(r chi.Router) {
-		r.Get("/", app.Controllers.Users.LoginView.ServeHTTP)
-		r.Post("/", app.Controllers.Users.Login)
-	})
+	login := r.Group("/login")
+	login.GET("", echo.WrapHandler(app.Controllers.Users.LoginView))
+	login.POST("", echo.WrapHandler(http.HandlerFunc(app.Controllers.Users.Login)))
 }
 
 func (app *App) galleriesRoutes(ar *routers.AppRouter) {
 	r := ar.Router
 	requireUser := ar.Middleware.RequireUser
-	r.Route("/galleries", func(r chi.Router) {
-		// Gallery Routes
-
-		r.Use(requireUser.Invoke)
-		r.Get("/", app.Controllers.Galleries.Index)
-		r.Post("/", app.Controllers.Galleries.Create)
-		r.Route("/new", func(r chi.Router) {
-			r.Get("/", app.Controllers.Galleries.New)
-		})
-		r.Route("/{galleryId}", func(r chi.Router) {
-			r.Get("/", app.Controllers.Galleries.Show)
-			r.Get("/edit", app.Controllers.Galleries.Edit)
-			r.Post("/update", app.Controllers.Galleries.Update)
-			r.Post("/delete", app.Controllers.Galleries.Delete)
-			r.Route("/images", func(r chi.Router) {
-				r.Post("/", app.Controllers.Galleries.ImageUpload)
-				r.Route("/{filename}", func(r chi.Router) {
-					r.Post("/delete", app.Controllers.Galleries.ImageDelete)
-				})
-			})
-		})
-	})
+	galleries := r.Group("/galleries", echo.WrapMiddleware(requireUser.Invoke))
+	galleries.GET("", app.Controllers.Galleries.Index)
+	galleries.POST("", app.Controllers.Galleries.Create)
+	galleries.GET("/new", app.Controllers.Galleries.New)
+	galleries.GET("/:galleryId", app.Controllers.Galleries.Show)
+	galleries.GET("/:galleryId/edit", app.Controllers.Galleries.Edit)
+	galleries.POST("/:galleryId/update", app.Controllers.Galleries.Update)
+	galleries.POST("/:galleryId/delete", app.Controllers.Galleries.Delete)
+	galleries.POST("/:galleryId/images", app.Controllers.Galleries.ImageUpload)
+	galleries.POST("/:galleryId/images/:filename/delete", app.Controllers.Galleries.ImageDelete)
 }
 
 func (app *App) imagesRoutes(ar *routers.AppRouter) {
 	r := ar.Router
-	r.Route("/images/galleries/{galleryID}", func(r chi.Router) {
-		r.Handle("/*", http.StripPrefix("/images/galleries/", ar.Middleware.RequireUser.ImageSafety(app.ImageServer)))
-	})
+	r.Static("/images", "images")
 }
 
 func (app *App) assetsRoutes(ar *routers.AppRouter) {
 	r := ar.Router
-	r.Route("/assets", func(r chi.Router) {
-		r.Handle("/*", http.StripPrefix("/assets/", app.AssetServer))
-	})
+	r.Static("/assets", "assets")
 }

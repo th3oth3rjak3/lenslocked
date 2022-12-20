@@ -1,7 +1,6 @@
 package usersModel
 
 import (
-	"os"
 	"regexp"
 	"strings"
 
@@ -28,9 +27,8 @@ type userValidator struct {
 type userValidationFunction func(*User) error
 
 // Creates a new instance of the userValidator
-func newUserValidator(ug *userGorm) *userValidator {
-	key := os.Getenv("HASH_KEY")
-	hmac := hash.NewHMAC(key)
+func newUserValidator(ug *userGorm, hmacKey string) *userValidator {
+	hmac := hash.NewHMAC(hmacKey)
 	regex := regexp.MustCompile(`^[a-z0-9._%+\-]+@[a-z0-9.\-]+\.[a-z]{2,16}$`)
 	return &userValidator{
 		UserDB:     ug,

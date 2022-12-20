@@ -10,6 +10,7 @@
 
 {{end}} {{define "galleryForm"}}
 <form action="/galleries" method="POST">
+	{{csrfField}}
 	<div class="form-floating mb-3">
 		<input
 			type="text"

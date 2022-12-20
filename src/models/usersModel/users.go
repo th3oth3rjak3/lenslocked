@@ -51,9 +51,9 @@ type userService struct {
 }
 
 // Creates an instance of the UserService with the provided db connection.
-func NewUserService(db *gorm.DB) UserService {
+func NewUserService(db *gorm.DB, hmacKey string) UserService {
 	ug := &userGorm{db}
-	uv := newUserValidator(ug)
+	uv := newUserValidator(ug, hmacKey)
 	return &userService{
 		UserDB: uv,
 	}

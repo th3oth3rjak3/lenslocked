@@ -3,6 +3,7 @@ package imagesModel
 import (
 	"fmt"
 	"io"
+	"net/url"
 	"os"
 	"path/filepath"
 	"strings"
@@ -15,11 +16,10 @@ type Image struct {
 }
 
 func (i *Image) Path() string {
-	return fmt.Sprintf("/images/galleries/%v/%v", i.GalleryID, i.Filename)
-}
-
-func (i *Image) String() string {
-	return i.Path()
+	url := url.URL{
+		Path: fmt.Sprintf("/images/galleries/%v/%v", i.GalleryID, i.Filename),
+	}
+	return url.String()
 }
 
 type ImageService interface {
@@ -40,6 +40,17 @@ func (is *imageService) Create(galleryID uint, r io.ReadCloser, filename string)
 	if err != nil {
 		return err
 	}
+
+	for is.fileExists(galleryPath + filename) {
+
+		fileSlice := strings.Split(filename, ".")
+		if len(fileSlice) > 1 {
+			// Add the extension to the end of the slice. We will overwrite the old extension with the _copy value
+			fileSlice[len(fileSlice)-2] += "_copy"
+			filename = strings.Join(fileSlice, ".")
+		}
+	}
+
 	dst, err := os.Create(galleryPath + filename)
 	if err != nil {
 		return err
@@ -113,4 +124,12 @@ func (is *imageService) makeImagePath(galleryID uint) (string, error) {
 		return "", err
 	}
 	return galleryPath, nil
+}
+
+func (is *imageService) fileExists(filename string) bool {
+	info, err := os.Stat(filename)
+	if os.IsNotExist(err) {
+		return false
+	}
+	return !info.IsDir()
 }

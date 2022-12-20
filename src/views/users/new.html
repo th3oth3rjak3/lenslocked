@@ -10,6 +10,7 @@
 
 {{end}} {{define "signup"}}
 <form action="/signup" method="POST">
+	{{csrfField}}
 	<div class="form-floating mb-3">
 		<input
 			type="text"

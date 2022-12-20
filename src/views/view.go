@@ -5,6 +5,7 @@ package views
 
 import (
 	"bytes"
+	"errors"
 	"html/template"
 	"io"
 	"log"
@@ -18,7 +19,11 @@ import (
 func NewView(layout string, files ...string) *View {
 	processViewNames(files)
 	files = append(files, layoutFiles()...)
-	t, err := template.ParseFiles(files...)
+	t, err := template.New("").Funcs(template.FuncMap{
+		"csrfField": func() (template.HTML, error) {
+			return "", errors.New("CSRF NOT IMPLEMENTED")
+		},
+	}).ParseFiles(files...)
 	if err != nil {
 		panic(err)
 	}
@@ -59,7 +64,16 @@ func (v *View) Render(w http.ResponseWriter, r *http.Request, data interface{}) 
 	}
 	vd.User = context.User(r.Context())
 	var buf bytes.Buffer
-	if err := v.Template.ExecuteTemplate(&buf, v.Layout, vd); err != nil {
+	csrfCookie, err := r.Cookie("_csrf")
+	if err != nil {
+		panic(err)
+	}
+	tpl := v.Template.Funcs(template.FuncMap{
+		"csrfField": func() template.HTML {
+			return template.HTML("<input type='hidden' name='csrf' value='" + csrfCookie.Value + "'/>")
+		},
+	})
+	if err := tpl.ExecuteTemplate(&buf, v.Layout, vd); err != nil {
 		log.Printf("Rendering Error Occurred: %s\n", err)
 		http.Error(w, "Something went wrong. If the problem persists, please email support.", http.StatusInternalServerError)
 		return

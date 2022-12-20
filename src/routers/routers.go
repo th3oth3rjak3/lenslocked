@@ -3,7 +3,7 @@ package routers
 import (
 	mw "lenslocked/middleware"
 
-	"github.com/go-chi/chi/v5"
+	"github.com/labstack/echo/v4"
 )
 
 type AppMiddleware struct {
@@ -12,7 +12,7 @@ type AppMiddleware struct {
 }
 
 type AppRouter struct {
-	Router     *chi.Mux
+	Router     *echo.Echo
 	Middleware AppMiddleware
 }
 

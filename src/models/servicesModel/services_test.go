@@ -1,33 +1,28 @@
 package servicesModel
 
 import (
-	"os"
 	"strings"
 	"testing"
 	"time"
 
+	"lenslocked/config"
 	"lenslocked/models/errorsModel"
 	"lenslocked/models/usersModel"
 	"lenslocked/rand"
-
-	"github.com/joho/godotenv"
 )
 
-func mockServices(causeDbError bool, causeEnvError bool) (*Services, error) {
-	if os.Getenv("GITHUB_ACTION_STATUS_INDICATOR") != "true" {
-		err := godotenv.Load("../.env")
-		if err != nil {
-			panic(err)
-		}
-	}
-	psqlInfo := os.Getenv("DB_CONNECTION_STRING_TEST")
+func mockServices(causeDbError bool) (*Services, error) {
+	dbCfg := config.TestPostGresConfig()
+	psqlInfo := dbCfg.ConnectionInfo()
 	if causeDbError {
-		psqlInfo = os.Getenv("DB_CONNECTION_STRING_ERROR")
+		psqlInfo = psqlInfo + "/////"
 	}
-	if causeEnvError {
-		os.Unsetenv("HASH_KEY")
-	}
-	services, err := NewServices(psqlInfo)
+	services, err := NewServices(
+		WithGorm(dbCfg.Dialect(), psqlInfo),
+		WithUser(config.DefaultHashKeyConfig()),
+		WithGallery(),
+		WithImages(),
+	)
 	if err != nil {
 		return nil, err
 	}
@@ -59,7 +54,7 @@ func fakeUserService() usersModel.User {
 }
 
 func TestCreateUser(t *testing.T) {
-	s, err := mockServices(false, false)
+	s, err := mockServices(false)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -104,7 +99,7 @@ func TestCreateUser(t *testing.T) {
 }
 
 func TestCreateDuplicateEmailUser(t *testing.T) {
-	s, err := mockServices(false, false)
+	s, err := mockServices(false)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -122,7 +117,7 @@ func TestCreateDuplicateEmailUser(t *testing.T) {
 }
 
 func TestCreateUserWithInvalidEmail(t *testing.T) {
-	s, err := mockServices(false, false)
+	s, err := mockServices(false)
 	if err != nil {
 		t.Fatalf("Expected mockServices, %s", err.Error())
 	}
@@ -155,7 +150,7 @@ func TestCreateUserWithInvalidEmail(t *testing.T) {
 }
 
 func TestCreateWithInvalidPassword(t *testing.T) {
-	s, err := mockServices(false, false)
+	s, err := mockServices(false)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -175,7 +170,7 @@ func TestCreateWithInvalidPassword(t *testing.T) {
 }
 
 func TestUserById(t *testing.T) {
-	s, err := mockServices(false, false)
+	s, err := mockServices(false)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -224,7 +219,7 @@ func TestUserById(t *testing.T) {
 }
 
 func TestUserByInvalidId(t *testing.T) {
-	s, err := mockServices(false, false)
+	s, err := mockServices(false)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -237,7 +232,7 @@ func TestUserByInvalidId(t *testing.T) {
 }
 
 func TestClosedUserServiceConnection(t *testing.T) {
-	s, err := mockServices(false, false)
+	s, err := mockServices(false)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -247,7 +242,7 @@ func TestClosedUserServiceConnection(t *testing.T) {
 }
 
 func TestBadDatabaseConnection(t *testing.T) {
-	s, err := mockServices(true, false)
+	s, err := mockServices(true)
 	if s != nil {
 		t.Errorf("Expected no user service, Have: %+v", s)
 	}
@@ -257,7 +252,7 @@ func TestBadDatabaseConnection(t *testing.T) {
 }
 
 func TestQueryWithClosedUserService(t *testing.T) {
-	s, err := mockServices(false, false)
+	s, err := mockServices(false)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -273,7 +268,7 @@ func TestQueryWithClosedUserService(t *testing.T) {
 }
 
 func TestUpdateUser(t *testing.T) {
-	s, err := mockServices(false, false)
+	s, err := mockServices(false)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -313,7 +308,7 @@ func TestUpdateUser(t *testing.T) {
 }
 
 func TestUpdateUserWithNoChanges(t *testing.T) {
-	s, err := mockServices(false, false)
+	s, err := mockServices(false)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -331,7 +326,7 @@ func TestUpdateUserWithNoChanges(t *testing.T) {
 }
 
 func TestUserByEmail(t *testing.T) {
-	s, err := mockServices(false, false)
+	s, err := mockServices(false)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -358,7 +353,7 @@ func TestUserByEmail(t *testing.T) {
 }
 
 func TestUserByInvalidEmail(t *testing.T) {
-	s, err := mockServices(false, false)
+	s, err := mockServices(false)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -376,7 +371,7 @@ func TestUserByInvalidEmail(t *testing.T) {
 }
 
 func TestUserByEmailWithClosedConnection(t *testing.T) {
-	s, err := mockServices(false, false)
+	s, err := mockServices(false)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -397,7 +392,7 @@ func TestUserByEmailWithClosedConnection(t *testing.T) {
 }
 
 func TestDeleteUserById(t *testing.T) {
-	s, err := mockServices(false, false)
+	s, err := mockServices(false)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -416,7 +411,7 @@ func TestDeleteUserById(t *testing.T) {
 }
 
 func TestDeleteUserByInvalidId(t *testing.T) {
-	s, err := mockServices(false, false)
+	s, err := mockServices(false)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -432,7 +427,7 @@ func TestDeleteUserByInvalidId(t *testing.T) {
 }
 
 func TestDestructiveReset(t *testing.T) {
-	s, err := mockServices(false, false)
+	s, err := mockServices(false)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -448,7 +443,7 @@ func TestDestructiveReset(t *testing.T) {
 }
 
 func TestAuthenticateValidUser(t *testing.T) {
-	s, err := mockServices(false, false)
+	s, err := mockServices(false)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -479,7 +474,7 @@ func TestAuthenticateValidUser(t *testing.T) {
 }
 
 func TestInvalidRememberToken(t *testing.T) {
-	s, err := mockServices(false, false)
+	s, err := mockServices(false)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -497,7 +492,7 @@ func TestInvalidRememberToken(t *testing.T) {
 }
 
 func TestByRemember(t *testing.T) {
-	s, err := mockServices(false, false)
+	s, err := mockServices(false)
 	if err != nil {
 		t.Fatal(err)
 	}

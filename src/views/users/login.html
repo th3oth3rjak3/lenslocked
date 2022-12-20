@@ -10,6 +10,7 @@
 
 {{end}} {{define "login"}}
 <form action="/login" method="POST">
+	{{csrfField}}
 	<div class="form-floating mb-3">
 		<input
 			type="email"

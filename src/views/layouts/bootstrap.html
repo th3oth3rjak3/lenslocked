@@ -25,6 +25,14 @@
 			integrity="sha384-A3rJD856KowSb7dwlZdYEkO39Gagi7vIsF0jrRAoQmDKKtQBHUuLZ9AsSv4jD4Xa"
 			crossorigin="anonymous"
 		></script>
+		<script>
+			var tooltipTriggerList = [].slice.call(
+				document.querySelectorAll('[data-bs-toggle="tooltip"]')
+			);
+			var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
+				return new bootstrap.Tooltip(tooltipTriggerEl);
+			});
+		</script>
 	</body>
 </html>
 {{end}}

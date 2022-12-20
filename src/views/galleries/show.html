@@ -1,18 +1,31 @@
-{{define "body"}}
-<div class="row justify-content-xl-center">
-	<div class="col-xl-12">
+{{define "body"}} {{if .Title}}
+<div class="row justify-content-md-center ps-4 pe-4">
+	<div class="col-md-10">
 		<h1>{{.Title}}</h1>
+		<a href="/galleries/{{.ID}}/edit">Edit Gallery</a>
+		<hr />
 	</div>
 </div>
-<div class="row">
-	{{range .ImagesSplitN 3}}
-	<div class="col-sm-4">
-		{{range .}}
-		<a href="{{.Path}}">
-			<img src="{{.Path}}" class="img-thumbnail" />
-		</a>
-		{{end}}
+<div class="row justify-content-md-center ps-4 pe-4">
+	<div class="col-md-10">
+		<div class="row">
+			{{range .ImagesSplitN 3}}
+			<div class="col-md-4">
+				{{range .}}
+				<a href="{{.Path}}">
+					<img
+						src="{{.Path}}"
+						class="img-thumbnail mb-3"
+						data-bs-toggle="tooltip"
+						data-bs-placement="top"
+						title="{{.Filename}}"
+						data-bs-delay='{"show": "2000"}'
+					/>
+				</a>
+				{{end}}
+			</div>
+			{{end}}
+		</div>
 	</div>
-	{{end}}
 </div>
-{{end}}
+{{else}} {{end}} {{end}}
