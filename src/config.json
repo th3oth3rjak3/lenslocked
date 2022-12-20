@@ -1,12 +1,12 @@
 {
 	"port": 3000,
 	"env": "dev",
-	"hmac_key": "energistically matrix cloud-centric experiences",
+	"hmac_key": "fake-hmac-key",
 	"database": {
 		"host": "localhost",
 		"port": 5432,
-		"user": "Jake",
-		"password": "",
+		"user": "test",
+		"password": "password",
 		"name": "lenslocked_dev"
 	}
 }
