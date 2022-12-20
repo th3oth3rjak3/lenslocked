@@ -1,0 +1,10 @@
+footer {
+	padding-top: 100px;
+}
+.button-links {
+	padding: none !important;
+	margin: none !important;
+}
+.save-button {
+	justify-content: left;
+}

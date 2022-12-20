@@ -9,18 +9,55 @@ import (
 	_ "github.com/jinzhu/gorm/dialects/postgres"
 )
 
-func NewServices(connectionInfo string) (*Services, error) {
-	db, err := gorm.Open("postgres", connectionInfo)
-	if err != nil {
-		return nil, err
+type ServicesConfig func(*Services) error
+
+func NewServices(cfgs ...ServicesConfig) (*Services, error) {
+	var s Services
+	for _, cfg := range cfgs {
+		if err := cfg(&s); err != nil {
+			return nil, err
+		}
 	}
-	db.LogMode(true)
-	return &Services{
-		User:    usersModel.NewUserService(db),
-		Gallery: galleriesModel.NewGalleryService(db),
-		Image:   imagesModel.NewImageService(),
-		db:      db,
-	}, nil
+	return &s, nil
+}
+
+func WithLogMode(logMode bool) ServicesConfig {
+	return func(s *Services) error {
+		s.db.LogMode(logMode)
+		return nil
+	}
+}
+
+func WithGorm(dialect, connectionInfo string) ServicesConfig {
+	return func(s *Services) error {
+		db, err := gorm.Open(dialect, connectionInfo)
+		if err != nil {
+			return err
+		}
+		s.db = db
+		return nil
+	}
+}
+
+func WithUser(hmacKey string) ServicesConfig {
+	return func(s *Services) error {
+		s.User = usersModel.NewUserService(s.db, hmacKey)
+		return nil
+	}
+}
+
+func WithGallery() ServicesConfig {
+	return func(s *Services) error {
+		s.Gallery = galleriesModel.NewGalleryService(s.db)
+		return nil
+	}
+}
+
+func WithImages() ServicesConfig {
+	return func(s *Services) error {
+		s.Image = imagesModel.NewImageService()
+		return nil
+	}
 }
 
 type Services struct {
@@ -28,11 +65,6 @@ type Services struct {
 	User    usersModel.UserService
 	Image   imagesModel.ImageService
 	db      *gorm.DB
-}
-
-// Turns database log mode on or off. This is used primarily for testing purposes.
-func (s *Services) LogMode(dbLogModeEnabled bool) {
-	s.db.LogMode(dbLogModeEnabled)
 }
 
 // Closes the database connection. It can be deferred if desired.

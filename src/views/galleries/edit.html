@@ -1,18 +1,19 @@
 {{define "body"}}
 <div class="row justify-content-xl-center ps-4 pe-4">
-	<div class="col-md-10">
+	<div class="col-xl-10">
 		<h1>Edit your gallery</h1>
+		<a href="/galleries/{{.ID}}">View Gallery</a>
 		<hr class="mb-3" />
 	</div>
-	<div class="col-md-12">{{template "editGalleryForm" .}}</div>
-	<div class="col-md-12">{{template "imageUploadForm" .}}</div>
-	<div class="col-md-12">{{template "imagesList" .}}</div>
+	<div class="col-xl-12">{{template "editGalleryForm" .}}</div>
+	<div class="col-xl-12">{{template "imageUploadForm" .}}</div>
+	<div class="col-xl-12">{{template "imagesList" .}}</div>
 	<div class="row justify-content-xl-center">
-		<div class="col-md-2 text-center">
+		<div class="col-xl-2 text-center">
 			<!-- Button trigger modal -->
 			<button
 				type="button"
-				class="btn btn-danger mt-3"
+				class="btn btn-danger mt-5"
 				data-bs-toggle="modal"
 				data-bs-target="#deleteModal"
 			>
@@ -28,13 +29,14 @@
 	method="POST"
 	class="form-group row justify-content-xl-center"
 >
+	{{csrfField}}
 	<div class="row align-items-center justify-content-xl-center">
-		<div class="col-md-1">
+		<div class="col-xl-1">
 			<label for="title" class="col-form-label" style="font-size: x-large"
 				>Gallery Title</label
 			>
 		</div>
-		<div class="col-md-8">
+		<div class="col-xl-8">
 			<input
 				type="text"
 				name="title"
@@ -44,7 +46,7 @@
 				value="{{.Title}}"
 			/>
 		</div>
-		<div class="col-md-1">
+		<div class="col-xl-1 mt-3 mb-3">
 			<button
 				type="submit"
 				class="btn btn-primary save-button"
@@ -56,7 +58,9 @@
 	</div>
 </form>
 
-<form action="/galleries/{{.ID}}/delete" method="POST" name="deleteForm"></form>
+<form action="/galleries/{{.ID}}/delete" method="POST" name="deleteForm">
+	{{csrfField}}
+</form>
 
 <!-- Gallery Delete Modal -->
 <div
@@ -150,13 +154,14 @@
 	name="imageForm"
 	id="imageForm"
 >
+	{{csrfField}}
 	<div class="row align-items-top justify-content-xl-center mt-3">
-		<div class="col-md-1">
+		<div class="col-xl-1">
 			<label for="images" class="col-form-label" style="font-size: x-large"
 				>Add Images</label
 			>
 		</div>
-		<div class="col-md-8">
+		<div class="col-xl-8">
 			<input
 				class="form-control"
 				type="file"
@@ -169,7 +174,7 @@
 				Please only use .jpg, .jpeg, and .png file types.
 			</p>
 		</div>
-		<div class="col-md-1">
+		<div class="col-xl-1">
 			<button
 				type="button"
 				onclick="uploadImages()"
@@ -186,25 +191,32 @@
 	<div
 		class="row align-text-bottom align-items-center justify-content-xl-center"
 	>
-		<div class="col-md-1">
+		<div class="col-xl-1">
 			<label for="images-list" class="col-form-label" style="font-size: x-large"
 				>Images</label
 			>
 		</div>
-		<div class="col-md-8">
+		<div class="col-xl-8">
 			<div class="row">
 				{{if .Images}} {{range .ImagesSplitN 6}}
-				<div class="col-sm-2">
+				<div class="col-xl-2">
 					{{range .}}
-					<a href="{{.Path}}" alt="{{.Filename}}" title="{{.Filename}}">
-						<img src="{{.Path}}" class="img-thumbnail" />
+					<a href="{{.Path}}" alt="{{.Filename}}">
+						<img
+							src="{{.Path}}"
+							class="img-thumbnail"
+							data-bs-toggle="tooltip"
+							data-bs-placement="top"
+							data-bs-delay='{"show": "400"}'
+							title="{{.Filename}}"
+						/>
 					</a>
 					{{template "deleteImageForm" .}} {{end}}
 				</div>
 				{{end}} {{else}} There are no images in your gallery... {{end}}
 			</div>
 		</div>
-		<div class="col-md-1"></div>
+		<div class="col-xl-1"></div>
 	</div>
 </div>
 {{end}} {{define "deleteImageForm"}}
@@ -213,7 +225,8 @@
 	method="post"
 	class="row justify-content-xl-center"
 >
-	<div class="text-center">
+	{{csrfField}}
+	<div class="text-center mb-3">
 		<button type="submit" class="btn btn-primary mt-2">Delete</button>
 	</div>
 </form>

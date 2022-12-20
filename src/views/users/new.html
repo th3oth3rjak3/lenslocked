@@ -3,13 +3,14 @@
 	<div class="col-xl-4">
 		<div class="card">
 			<div class="card-header text-bg-dark">Sign Up Now!</div>
-			<div class="card-body">{{template "signup"}}</div>
+			<div class="card-body">{{template "signup" .}}</div>
 		</div>
 	</div>
 </div>
 
 {{end}} {{define "signup"}}
 <form action="/signup" method="POST">
+	{{csrfField}}
 	<div class="form-floating mb-3">
 		<input
 			type="text"
@@ -17,6 +18,7 @@
 			name="name"
 			id="name"
 			placeholder="Full Name"
+			value="{{.Name}}"
 		/>
 		<label for="name">Full Name</label>
 	</div>
@@ -26,6 +28,7 @@
 			class="form-control"
 			name="email"
 			id="email"
+			value="{{.Email}}"
 			placeholder="Email Address"
 		/>
 		<label for="email">Email address</label>
